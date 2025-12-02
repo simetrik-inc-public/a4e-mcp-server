@@ -1,0 +1,21 @@
+[project]
+name = "a4e-mcp-server"
+version = "0.1.0"
+description = "A comprehensive MCP server toolkit for building, managing, and running AI agents compatible with the A4E ecosystem."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "jinja2>=3.1.6",
+    "mcp[cli]>=1.22.0",
+    "pydantic>=2.12.4",
+    "pyngrok>=7.5.0",
+    "pyyaml>=6.0.3",
+    "sse-starlette>=3.0.3",
+    "watchdog>=6.0.0",
+]
+
+[project.scripts]
+a4e = "a4e_mcp.server:main"
+
+[tool.setuptools.package-data]
+"a4e_mcp" = ["templates/*"]
