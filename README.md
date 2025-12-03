@@ -59,6 +59,28 @@ The **A4E MCP Server** enables creators to build agents using natural language d
    }
    ```
 
+## Concepts
+
+### What is an A4E Agent?
+
+An **A4E Agent** is a specialized AI assistant tailored for a specific domain or task (e.g., a Nutrition Coach or Daily Planner). It combines natural language understanding with custom capabilities defined by **Tools** and **Widgets**.
+
+### Tools
+
+**Tools** are Python functions that give the agent the ability to perform actions or retrieve information.
+
+- Defined in `tools/*.py` using the `@tool` decorator.
+- The agent decides when to call a tool based on the user's request.
+- **How it works**: When you ask "Calculate BMI", the agent looks for a tool capable of that calculation, executes the Python code, and returns the result.
+
+### Widgets
+
+**Widgets** are React components that provide a rich graphical interface for the agent's responses.
+
+- Defined in `widgets/*/widget.tsx`.
+- Used to display structured data (like charts, lists, or forms) instead of just text.
+- **How it works**: If a tool returns complex data (like a meal plan), the agent can choose to render a specific widget (e.g., `MealPlanWidget`) to show that data interactively.
+
 ## Workflow
 
 1. **Create an Agent**:

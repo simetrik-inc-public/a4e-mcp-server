@@ -8,3 +8,5 @@ dist/
 *.py[cod]
 .venv/
 .env
+
+file-store/
