@@ -53,7 +53,7 @@ The **A4E MCP Server** enables creators to build agents using natural language d
       "mcpServers": {
          "a4e": {
             "command": "uv",
-            "args": ["run", "a4e_mcp/server.py"]
+            "args": ["run", "--directory", "${workspaceFolder}", "a4e_mcp/server.py"]
          }
       }
    }
