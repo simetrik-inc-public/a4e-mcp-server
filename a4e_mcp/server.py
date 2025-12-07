@@ -176,6 +176,8 @@ def initialize_project(
             description=safe_description,
         )
         (project_dir / "prompts/agent.md").write_text(prompt)
+        (project_dir / "prompts/reviewer.md").write_text("")
+        (project_dir / "prompts/widget_renderer.md").write_text("")
 
         # Create welcome widget (MANDATORY)
         _create_widget(
