@@ -2,19 +2,19 @@
 import React from "react";
 import { a4e } from "@/lib/sdk";
 
-interface {{ widget_name }}Props {
+interface {{ view_name }}Props {
 {% for prop_name, prop_info in props.items() %}
   {{ prop_name }}: {{ prop_info.type }};
 {% endfor %}
 }
 
-export default function {{ widget_name }}Widget(props: {{ widget_name }}Props) {
+export default function {{ view_name }}View(props: {{ view_name }}Props) {
   const { {% for prop_name in props.keys() %}{{ prop_name }}{% if not loop.last %}, {% endif %}{% endfor %} } = props;
 
   return (
     <div className="p-6">
       <h2>{{ description }}</h2>
-      {/* Widget content */}
+      {/* View content */}
       <pre>{JSON.stringify(props, null, 2)}</pre>
     </div>
   );

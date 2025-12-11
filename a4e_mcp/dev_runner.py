@@ -8,26 +8,28 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any, Optional
 
+
 # Mock a4e SDK and autogen
 def _mock_dependencies():
     """Mock a4e.sdk and autogen_agentchat to allow agent.py to load"""
     if "a4e" not in sys.modules:
         a4e = ModuleType("a4e")
         sdk = ModuleType("a4e.sdk")
-        
+
         class MockAgentFactory:
             @staticmethod
             async def create_agent(*args, **kwargs):
                 return "MockAgentInstance"
-        
+
         sdk.AgentFactory = MockAgentFactory
-        
+
         # Mock tool decorator
         def tool(func):
             func._is_tool = True
             return func
+
         sdk.tool = tool
-        
+
         a4e.sdk = sdk
         sys.modules["a4e"] = a4e
         sys.modules["a4e.sdk"] = sdk
@@ -35,14 +37,15 @@ def _mock_dependencies():
     if "autogen_agentchat" not in sys.modules:
         autogen = ModuleType("autogen_agentchat")
         agents = ModuleType("autogen_agentchat.agents")
-        
+
         class AssistantAgent:
             pass
-            
+
         agents.AssistantAgent = AssistantAgent
         autogen.agents = agents
         sys.modules["autogen_agentchat"] = autogen
         sys.modules["autogen_agentchat.agents"] = agents
+
 
 def run_agent_server(agent_path: Path, port: int):
     """Run the agent in a FastMCP server with REST API endpoints"""
@@ -71,11 +74,11 @@ def run_agent_server(agent_path: Path, port: int):
     if tools_schemas_path.exists():
         tools_schemas = json.loads(tools_schemas_path.read_text())
 
-    # Load widgets schemas
-    widgets_schemas_path = agent_path / "widgets" / "schemas.json"
-    widgets_schemas = {}
-    if widgets_schemas_path.exists():
-        widgets_schemas = json.loads(widgets_schemas_path.read_text())
+    # Load views schemas
+    views_schemas_path = agent_path / "views" / "schemas.json"
+    views_schemas = {}
+    if views_schemas_path.exists():
+        views_schemas = json.loads(views_schemas_path.read_text())
 
     # Load system prompt
     prompt_path = agent_path / "prompts" / "agent.md"
@@ -99,7 +102,10 @@ def run_agent_server(agent_path: Path, port: int):
 
                     for name, obj in inspect.getmembers(module):
                         if inspect.isfunction(obj):
-                            if getattr(obj, "_is_tool", False) or name == tool_file.stem:
+                            if (
+                                getattr(obj, "_is_tool", False)
+                                or name == tool_file.stem
+                            ):
                                 # Register with FastMCP
                                 mcp.tool()(obj)
                                 print(f"Registered tool: {name}")
@@ -122,52 +128,59 @@ def run_agent_server(agent_path: Path, port: int):
             params = []
             if "inputSchema" in schema and "properties" in schema["inputSchema"]:
                 required = schema["inputSchema"].get("required", [])
-                for param_name, param_info in schema["inputSchema"]["properties"].items():
-                    params.append({
-                        "name": param_name,
-                        "type": param_info.get("type", "string"),
-                        "description": param_info.get("description", ""),
-                        "required": param_name in required
-                    })
-            tools.append({
-                "name": schema.get("name", ""),
-                "description": schema.get("description", ""),
-                "parameters": params
-            })
+                for param_name, param_info in schema["inputSchema"][
+                    "properties"
+                ].items():
+                    params.append(
+                        {
+                            "name": param_name,
+                            "type": param_info.get("type", "string"),
+                            "description": param_info.get("description", ""),
+                            "required": param_name in required,
+                        }
+                    )
+            tools.append(
+                {
+                    "name": schema.get("name", ""),
+                    "description": schema.get("description", ""),
+                    "parameters": params,
+                }
+            )
         return JSONResponse(tools)
 
-    async def get_widgets(request):
-        # Convert widgets schema to frontend expected format
-        widgets = []
-        for widget_id, widget_data in widgets_schemas.items():
+    async def get_views(request):
+        # Convert views schema to frontend expected format
+        views = []
+        for view_id, view_data in views_schemas.items():
             props = []
-            if "params" in widget_data:
-                for prop_name, prop_info in widget_data["params"].items():
-                    props.append({
-                        "name": prop_name,
-                        "type": prop_info.get("type", "string"),
-                        "required": True,  # Default to required
-                        "description": prop_info.get("description", "")
-                    })
-            widgets.append({
-                "id": widget_data.get("id", widget_id),
-                "description": widget_data.get("description", ""),
-                "props": props
-            })
-        return JSONResponse(widgets)
+            if "params" in view_data:
+                for prop_name, prop_info in view_data["params"].items():
+                    props.append(
+                        {
+                            "name": prop_name,
+                            "type": prop_info.get("type", "string"),
+                            "required": True,  # Default to required
+                            "description": prop_info.get("description", ""),
+                        }
+                    )
+            views.append(
+                {
+                    "id": view_data.get("id", view_id),
+                    "description": view_data.get("description", ""),
+                    "props": props,
+                }
+            )
+        return JSONResponse(views)
 
-    async def get_widget_source(request):
-        """Get source code for a specific widget"""
-        widget_id = request.path_params["widget_id"]
-        widget_file = agent_path / "widgets" / widget_id / "widget.tsx"
-        
-        if not widget_file.exists():
-            return JSONResponse({"error": "Widget not found"}, status_code=404)
-            
-        return Response(
-            content=widget_file.read_text(),
-            media_type="text/plain"
-        )
+    async def get_view_source(request):
+        """Get source code for a specific view"""
+        view_id = request.path_params["view_id"]
+        view_file = agent_path / "views" / view_id / "view.tsx"
+
+        if not view_file.exists():
+            return JSONResponse({"error": "View not found"}, status_code=404)
+
+        return Response(content=view_file.read_text(), media_type="text/plain")
 
     async def download_source(request):
         """Download the entire agent source as a zip file"""
@@ -178,16 +191,16 @@ def run_agent_server(agent_path: Path, port: int):
                     # Skip __pycache__ and hidden files
                     if "__pycache__" in root or file.startswith("."):
                         continue
-                        
+
                     file_path = os.path.join(root, file)
                     archive_name = os.path.relpath(file_path, agent_path)
                     zip_file.write(file_path, archive_name)
-        
+
         buffer.seek(0)
         return Response(
             content=buffer.getvalue(),
             media_type="application/zip",
-            headers={"Content-Disposition": f'attachment; filename="{agent_name}.zip"'}
+            headers={"Content-Disposition": f'attachment; filename="{agent_name}.zip"'},
         )
 
     async def get_prompt(request):
@@ -215,45 +228,33 @@ def run_agent_server(agent_path: Path, port: int):
 
             # 1. Send status
             yield {
-                "data": json.dumps({
-                    "type": "status",
-                    "content": "Processing request..."
-                })
+                "data": json.dumps(
+                    {"type": "status", "content": "Processing request..."}
+                )
             }
             await asyncio.sleep(0.5)
 
             # 2. Stream text response
             response_text = f"I received your message: '{last_message}'. I am running in Dev Mode via MCP!"
-            
+
             # Split into chunks
             words = response_text.split(" ")
             for word in words:
                 yield {
-                    "data": json.dumps({
-                        "type": "chat",
-                        "content": word + " ",
-                        "complete": False
-                    })
+                    "data": json.dumps(
+                        {"type": "chat", "content": word + " ", "complete": False}
+                    )
                 }
                 await asyncio.sleep(0.1)
 
             # 3. Complete chat
             yield {
-                "data": json.dumps({
-                    "type": "chat",
-                    "content": "",
-                    "complete": True
-                })
+                "data": json.dumps({"type": "chat", "content": "", "complete": True})
             }
 
             # 4. Done signal
-            yield {
-                "data": json.dumps({
-                    "type": "done",
-                    "content": "Stream complete"
-                })
-            }
-            
+            yield {"data": json.dumps({"type": "done", "content": "Stream complete"})}
+
             # SSE Done
             yield {"data": "[DONE]"}
 
@@ -262,7 +263,7 @@ def run_agent_server(agent_path: Path, port: int):
     print(f"Starting agent server on port {port}...")
     # FastMCP uses starlette/uvicorn internally for SSE
     import uvicorn
-    
+
     # Get the SSE ASGI app from FastMCP
     sse_app = mcp.sse_app()
 
@@ -271,11 +272,15 @@ def run_agent_server(agent_path: Path, port: int):
         routes=[
             Route("/agent-info", agent_info),
             Route("/tools", get_tools),
-            Route("/widgets", get_widgets),
-            Route("/widgets/{widget_id}/source", get_widget_source),
+            Route("/views", get_views),
+            Route("/views/{view_id}/source", get_view_source),
             Route("/system-prompt", get_prompt),
             Route("/download", download_source),
-            Route("/api/agents/{agent_name}/unified-stream", unified_stream, methods=["POST"]),
+            Route(
+                "/api/agents/{agent_name}/unified-stream",
+                unified_stream,
+                methods=["POST"],
+            ),
             Mount("/", sse_app),  # Mount MCP SSE at root
         ]
     )
@@ -292,10 +297,11 @@ def run_agent_server(agent_path: Path, port: int):
     # Run uvicorn directly with our port
     uvicorn.run(app, host="0.0.0.0", port=port)
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--agent-path", required=True, help="Path to agent directory")
     parser.add_argument("--port", type=int, default=5000, help="Port to run on")
     args = parser.parse_args()
-    
+
     run_agent_server(Path(args.agent_path), args.port)

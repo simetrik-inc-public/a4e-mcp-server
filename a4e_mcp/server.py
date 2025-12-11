@@ -108,7 +108,7 @@ def initialize_project(
         "Customer Support",
         "General",
     ],
-    template: Literal["basic", "with-tools", "with-widgets", "full"] = "basic",
+    template: Literal["basic", "with-tools", "with-views", "full"] = "basic",
 ) -> dict:
     """
     Initialize a new A4E agent project
@@ -118,7 +118,7 @@ def initialize_project(
         display_name: Human-readable name (e.g., "Nutrition Coach")
         description: Short description of the agent
         category: Agent category for marketplace
-        template: Project template (basic=files only, with-tools=example tool, with-widgets=example widget, full=both)
+        template: Project template (basic=files only, with-tools=example tool, with-views=example view, full=both)
 
     Returns:
         Project details with created files and next steps
@@ -145,7 +145,7 @@ def initialize_project(
         project_dir.mkdir(exist_ok=True)
         (project_dir / "prompts").mkdir(exist_ok=True)
         (project_dir / "tools").mkdir(exist_ok=True)
-        (project_dir / "widgets").mkdir(exist_ok=True)
+        (project_dir / "views").mkdir(exist_ok=True)
 
         # Sanitize inputs before template rendering
         safe_name = sanitize_input(name)
@@ -177,12 +177,12 @@ def initialize_project(
         )
         (project_dir / "prompts/agent.md").write_text(prompt)
         (project_dir / "prompts/reviewer.md").write_text("")
-        (project_dir / "prompts/widget_renderer.md").write_text("")
+        (project_dir / "prompts/view_renderer.md").write_text("")
 
-        # Create welcome widget (MANDATORY)
-        _create_widget(
-            widget_id="welcome",
-            description="Welcome widget for the agent",
+        # Create welcome view (MANDATORY)
+        _create_view(
+            view_id="welcome",
+            description="Welcome view for the agent",
             props={"title": {"type": "string", "description": "Welcome title"}},
             project_dir=project_dir,
         )
@@ -214,13 +214,13 @@ def example_tool(
 '''
             (project_dir / "tools" / "example_tool.py").write_text(example_tool_code)
 
-        if template in ["with-widgets", "full"]:
-            # Create example widget (in addition to welcome)
-            _create_widget(
-                widget_id="example_widget",
-                description="Example widget demonstrating props usage",
+        if template in ["with-views", "full"]:
+            # Create example view (in addition to welcome)
+            _create_view(
+                view_id="example_view",
+                description="Example view demonstrating props usage",
                 props={
-                    "title": {"type": "string", "description": "Widget title"},
+                    "title": {"type": "string", "description": "View title"},
                     "count": {"type": "number", "description": "Count value"},
                 },
                 project_dir=project_dir,
@@ -241,7 +241,7 @@ def example_tool(
             },
             "next_steps": [
                 f"Add tools: add_tool(..., agent_name='{name}')",
-                f"Add widgets: add_widget(..., agent_name='{name}')",
+                f"Add views: add_view(..., agent_name='{name}')",
                 "Start dev server using 'dev_start'",
             ],
         }
@@ -249,38 +249,38 @@ def example_tool(
         return {"success": False, "error": str(e)}
 
 
-def _create_widget(
-    widget_id: str, description: str, props: dict, project_dir: Path
+def _create_view(
+    view_id: str, description: str, props: dict, project_dir: Path
 ) -> dict:
-    """Helper to create a widget"""
-    widgets_dir = project_dir / "widgets"
+    """Helper to create a view"""
+    views_dir = project_dir / "views"
 
-    if not widgets_dir.exists():
+    if not views_dir.exists():
         return {
             "success": False,
-            "error": f"widgets/ directory not found at {widgets_dir}",
+            "error": f"views/ directory not found at {views_dir}",
         }
 
-    widget_dir = widgets_dir / widget_id
-    if widget_dir.exists():
-        return {"success": False, "error": f"Widget '{widget_id}' already exists"}
+    view_dir = views_dir / view_id
+    if view_dir.exists():
+        return {"success": False, "error": f"View '{view_id}' already exists"}
 
     try:
-        widget_dir.mkdir()
+        view_dir.mkdir()
 
         # Convert snake_case to PascalCase for component name
-        widget_name = "".join(word.title() for word in widget_id.split("_"))
+        view_name = "".join(word.title() for word in view_id.split("_"))
 
-        template = jinja_env.get_template("widget.tsx.j2")
+        template = jinja_env.get_template("view.tsx.j2")
         code = template.render(
-            widget_name=widget_name, description=description, props=props
+            view_name=view_name, description=description, props=props
         )
-        (widget_dir / "widget.tsx").write_text(code)
+        (view_dir / "view.tsx").write_text(code)
 
         return {
             "success": True,
-            "message": f"Created widget '{widget_id}'",
-            "path": str(widget_dir),
+            "message": f"Created view '{view_id}'",
+            "path": str(view_dir),
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -374,29 +374,29 @@ def add_tool(
 
 
 @mcp.tool()
-def add_widget(
-    widget_id: str, description: str, props: dict, agent_name: Optional[str] = None
+def add_view(
+    view_id: str, description: str, props: dict, agent_name: Optional[str] = None
 ) -> dict:
     """
-    Add a new React widget
+    Add a new React view
 
     Args:
-        widget_id: ID of the widget (snake_case, e.g., "meal_plan")
-        description: Widget purpose
+        view_id: ID of the view (snake_case, e.g., "meal_plan")
+        description: View purpose
         props: Dictionary of props with types
         agent_name: Optional agent ID if not in agent directory
     """
-    # Validate widget ID
-    if not widget_id.replace("_", "").isalnum():
+    # Validate view ID
+    if not view_id.replace("_", "").isalnum():
         return {
             "success": False,
-            "error": "Widget ID must be alphanumeric with underscores",
+            "error": "View ID must be alphanumeric with underscores",
         }
 
     project_dir = get_project_dir(agent_name)
-    result = _create_widget(widget_id, description, props, project_dir)
+    result = _create_view(view_id, description, props, project_dir)
 
-    # Auto-generate schemas after adding widget
+    # Auto-generate schemas after adding view
     if result.get("success"):
         generate_schemas(force=False, agent_name=agent_name)
 
@@ -414,8 +414,8 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
 
     Generates:
     - tools/schemas.json (from @tool functions)
-    - widgets/*/widget.schema.json (from TypeScript props)
-    - widgets/schemas.json (aggregated summary for backend)
+    - views/*/view.schema.json (from TypeScript props)
+    - views/schemas.json (aggregated summary for backend)
     """
     import sys
     import importlib.util
@@ -431,16 +431,16 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
 
     project_dir = get_project_dir(agent_name)
     tools_dir = project_dir / "tools"
-    widgets_dir = project_dir / "widgets"
+    views_dir = project_dir / "views"
 
     results = {
         "tools": {"count": 0, "status": "skipped", "errors": []},
-        "widgets": {"count": 0, "status": "skipped", "errors": []},
+        "views": {"count": 0, "status": "skipped", "errors": []},
     }
 
     # Check for existing schemas if force is False
     tools_schema_file = tools_dir / "schemas.json" if tools_dir.exists() else None
-    widgets_schema_file = widgets_dir / "schemas.json" if widgets_dir.exists() else None
+    views_schema_file = views_dir / "schemas.json" if views_dir.exists() else None
 
     if not force:
         # Check if tool schemas exist
@@ -450,19 +450,19 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
             )
             results["tools"]["status"] = "skipped"
 
-        # Check if widget schemas exist
-        if widgets_schema_file and widgets_schema_file.exists():
+        # Check if view schemas exist
+        if views_schema_file and views_schema_file.exists():
             print(
-                f"Skipping widget schema generation - {widgets_schema_file} exists (use force=True to overwrite)"
+                f"Skipping view schema generation - {views_schema_file} exists (use force=True to overwrite)"
             )
-            results["widgets"]["status"] = "skipped"
+            results["views"]["status"] = "skipped"
 
         # If both are skipped, return early
         if (
             tools_schema_file
             and tools_schema_file.exists()
-            and widgets_schema_file
-            and widgets_schema_file.exists()
+            and views_schema_file
+            and views_schema_file.exists()
         ):
             return results
 
@@ -539,25 +539,25 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
             results["tools"]["errors"].append(error_msg)
             results["tools"]["status"] = "error"
 
-    # Generate Widget Schemas
-    if widgets_dir.exists() and (
-        force or not (widgets_schema_file and widgets_schema_file.exists())
+    # Generate View Schemas
+    if views_dir.exists() and (
+        force or not (views_schema_file and views_schema_file.exists())
     ):
         import re
 
         has_errors = False
-        aggregated_widgets = {}
+        aggregated_views = {}
 
-        for widget_dir in widgets_dir.iterdir():
-            if not widget_dir.is_dir():
+        for view_dir in views_dir.iterdir():
+            if not view_dir.is_dir():
                 continue
 
-            widget_file = widget_dir / "widget.tsx"
-            if not widget_file.exists():
+            view_file = view_dir / "view.tsx"
+            if not view_file.exists():
                 continue
 
             try:
-                content = widget_file.read_text()
+                content = view_file.read_text()
 
                 # Simple regex to find interface Props
                 props_match = re.search(r"interface\s+(\w+Props)\s*{([^}]+)}", content)
@@ -595,8 +595,8 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
                                 required.append(name)
 
                 schema = {
-                    "name": widget_dir.name,
-                    "description": f"Widget for {widget_dir.name}",
+                    "name": view_dir.name,
+                    "description": f"View for {view_dir.name}",
                     "props": {
                         "type": "object",
                         "properties": properties,
@@ -605,40 +605,40 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
                 }
 
                 # Write individual schema
-                widget_schema_file = widget_dir / "widget.schema.json"
-                if widget_schema_file.exists() and force:
-                    print(f"Overwriting {widget_schema_file}")
-                widget_schema_file.write_text(json.dumps(schema, indent=2))
+                view_schema_file = view_dir / "view.schema.json"
+                if view_schema_file.exists() and force:
+                    print(f"Overwriting {view_schema_file}")
+                view_schema_file.write_text(json.dumps(schema, indent=2))
 
                 # Add to aggregated dict
-                # Backend expects: { "widget_id": { "id": "...", "description": "...", "params": {...} } }
-                aggregated_widgets[widget_dir.name] = {
-                    "id": widget_dir.name,
-                    "description": f"Widget for {widget_dir.name}",
+                # Backend expects: { "view_id": { "id": "...", "description": "...", "params": {...} } }
+                aggregated_views[view_dir.name] = {
+                    "id": view_dir.name,
+                    "description": f"View for {view_dir.name}",
                     "params": properties,  # Simplified mapping for now
                 }
 
-                results["widgets"]["count"] += 1
+                results["views"]["count"] += 1
 
             except Exception as e:
-                error_msg = f"Error processing widget {widget_dir}: {e}"
+                error_msg = f"Error processing view {view_dir}: {e}"
                 print(error_msg)
-                results["widgets"]["errors"].append(error_msg)
+                results["views"]["errors"].append(error_msg)
                 has_errors = True
 
         # Write aggregated schemas.json
         try:
-            aggregated_schema_file = widgets_dir / "schemas.json"
+            aggregated_schema_file = views_dir / "schemas.json"
             if aggregated_schema_file.exists() and force:
                 print(f"Overwriting {aggregated_schema_file}")
-            aggregated_schema_file.write_text(json.dumps(aggregated_widgets, indent=2))
+            aggregated_schema_file.write_text(json.dumps(aggregated_views, indent=2))
         except Exception as e:
-            error_msg = f"Error writing widgets/schemas.json: {e}"
+            error_msg = f"Error writing views/schemas.json: {e}"
             print(error_msg)
-            results["widgets"]["errors"].append(error_msg)
+            results["views"]["errors"].append(error_msg)
             has_errors = True
 
-        results["widgets"]["status"] = "error" if has_errors else "success"
+        results["views"]["status"] = "error" if has_errors else "success"
 
     return results
 
@@ -661,7 +661,7 @@ def validate(strict: bool = True, agent_name: Optional[str] = None) -> dict:
         "agent.py",
         "metadata.json",
         "prompts/agent.md",
-        "widgets/welcome/widget.tsx",
+        "views/welcome/view.tsx",
     ]
 
     missing = []
@@ -723,18 +723,18 @@ def validate(strict: bool = True, agent_name: Optional[str] = None) -> dict:
                 "Tools exist but tools/schemas.json is missing. Run generate_schemas."
             )
 
-        # 3. Check widget schemas
-        widgets_dir = project_dir / "widgets"
-        if widgets_dir.exists():
-            # Find widget directories (not __init__.py files)
-            widget_dirs = [
+        # 3. Check view schemas
+        views_dir = project_dir / "views"
+        if views_dir.exists():
+            # Find view directories (not __init__.py files)
+            view_dirs = [
                 d
-                for d in widgets_dir.iterdir()
-                if d.is_dir() and (d / "widget.tsx").exists()
+                for d in views_dir.iterdir()
+                if d.is_dir() and (d / "view.tsx").exists()
             ]
-            if not (widgets_dir / "schemas.json").exists() and widget_dirs:
+            if not (views_dir / "schemas.json").exists() and view_dirs:
                 errors.append(
-                    "Widgets exist but widgets/schemas.json is missing. Run generate_schemas."
+                    "Views exist but views/schemas.json is missing. Run generate_schemas."
                 )
 
         if errors:
@@ -877,7 +877,7 @@ def deploy(
 
     if (
         gen_result.get("tools", {}).get("status") == "error"
-        or gen_result.get("widgets", {}).get("status") == "error"
+        or gen_result.get("views", {}).get("status") == "error"
     ):
         return {
             "success": False,
@@ -923,22 +923,22 @@ def list_tools(agent_name: Optional[str] = None) -> dict:
 
 
 @mcp.tool()
-def list_widgets(agent_name: Optional[str] = None) -> dict:
+def list_views(agent_name: Optional[str] = None) -> dict:
     """
-    List all widgets available in the current agent project
+    List all views available in the current agent project
     """
     project_dir = get_project_dir(agent_name)
-    widgets_dir = project_dir / "widgets"
+    views_dir = project_dir / "views"
 
-    if not widgets_dir.exists():
-        return {"widgets": [], "count": 0}
+    if not views_dir.exists():
+        return {"views": [], "count": 0}
 
-    widgets = []
-    for widget_dir in widgets_dir.iterdir():
-        if widget_dir.is_dir() and (widget_dir / "widget.tsx").exists():
-            widgets.append(widget_dir.name)
+    views = []
+    for view_dir in views_dir.iterdir():
+        if view_dir.is_dir() and (view_dir / "view.tsx").exists():
+            views.append(view_dir.name)
 
-    return {"widgets": sorted(widgets), "count": len(widgets)}
+    return {"views": sorted(views), "count": len(views)}
 
 
 @mcp.tool()

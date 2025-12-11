@@ -63,7 +63,7 @@ The **A4E MCP Server** enables creators to build agents using natural language d
 
 ### What is an A4E Agent?
 
-An **A4E Agent** is a specialized AI assistant tailored for a specific domain or task (e.g., a Nutrition Coach or Daily Planner). It combines natural language understanding with custom capabilities defined by **Tools** and **Widgets**.
+An **A4E Agent** is a specialized AI assistant tailored for a specific domain or task (e.g., a Nutrition Coach or Daily Planner). It combines natural language understanding with custom capabilities defined by **Tools** and **Views**.
 
 ### Tools
 
@@ -73,13 +73,13 @@ An **A4E Agent** is a specialized AI assistant tailored for a specific domain or
 - The agent decides when to call a tool based on the user's request.
 - **How it works**: When you ask "Calculate BMI", the agent looks for a tool capable of that calculation, executes the Python code, and returns the result.
 
-### Widgets
+### Views
 
-**Widgets** are React components that provide a rich graphical interface for the agent's responses.
+**Views** are React components that provide a rich graphical interface for the agent's responses.
 
-- Defined in `widgets/*/widget.tsx`.
+- Defined in `views/*/view.tsx`.
 - Used to display structured data (like charts, lists, or forms) instead of just text.
-- **How it works**: If a tool returns complex data (like a meal plan), the agent can choose to render a specific widget (e.g., `MealPlanWidget`) to show that data interactively.
+- **How it works**: If a tool returns complex data (like a meal plan), the agent can choose to render a specific view (e.g., `MealPlanView`) to show that data interactively.
 
 ## Workflow
 
@@ -92,9 +92,9 @@ An **A4E Agent** is a specialized AI assistant tailored for a specific domain or
    Ask: _"Add a tool to calculate BMI"_
    -> Creates `tools/calculate_bmi.py`.
 
-3. **Add Widgets**:
-   Ask: _"Add a widget to show the BMI result"_
-   -> Creates `widgets/bmi_result/widget.tsx`.
+3. **Add Views**:
+   Ask: _"Add a view to show the BMI result"_
+   -> Creates `views/bmi_result/view.tsx`.
 
 4. **Auto-Generate Schemas**:
    The server automatically generates schemas from your Python code and React props when you run `generate_schemas` (or when the file watcher triggers, if enabled).
