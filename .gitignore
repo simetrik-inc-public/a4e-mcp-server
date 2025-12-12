@@ -1,3 +1,6 @@
+#OS Specific file
+.DS_Store
+
 # Build artifacts
 build/
 dist/
