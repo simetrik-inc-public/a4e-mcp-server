@@ -1,0 +1,21 @@
+"use client";
+import React from "react";
+import { a4e } from "@/lib/sdk";
+
+interface {{ view_name }}Props {
+{% for prop_name, prop_info in props.items() %}
+  {{ prop_name }}: {{ prop_info.type }};
+{% endfor %}
+}
+
+export default function {{ view_name }}View(props: {{ view_name }}Props) {
+  const { {% for prop_name in props.keys() %}{{ prop_name }}{% if not loop.last %}, {% endif %}{% endfor %} } = props;
+
+  return (
+    <div className="p-6">
+      <h2>{{ description }}</h2>
+      {/* View content */}
+      <pre>{JSON.stringify(props, null, 2)}</pre>
+    </div>
+  );
+}
