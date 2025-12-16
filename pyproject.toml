@@ -9,13 +9,15 @@ dependencies = [
     "mcp[cli]>=1.22.0",
     "pydantic>=2.12.4",
     "pyngrok>=7.5.0",
+    "pyperclip>=1.11.0",
     "pyyaml>=6.0.3",
     "sse-starlette>=3.0.3",
+    "typer>=0.20.0",
     "watchdog>=6.0.0",
 ]
 
 [project.scripts]
-a4e = "a4e_mcp.server:main"
+a4e = "a4e.cli:app"
 
 [tool.setuptools.package-data]
-"a4e_mcp" = ["templates/*"]
+"a4e" = ["templates/*"]
