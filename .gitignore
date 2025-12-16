@@ -13,3 +13,4 @@ dist/
 .env
 
 file-store/
+.mypy_cache/
