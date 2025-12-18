@@ -30,9 +30,10 @@ def get_ngrok_authtoken():
     try:
         home = Path.home()
         config_paths = [
-            home / ".ngrok2" / "ngrok.yml",
-            home / ".config" / "ngrok" / "ngrok.yml",
-            home / "Library" / "Application Support" / "ngrok" / "ngrok.yml",
+            home / "AppData" / "Local" / "ngrok" / "ngrok.yml",  # Windows
+            home / ".ngrok2" / "ngrok.yml",  # Linux
+            home / ".config" / "ngrok" / "ngrok.yml",  # Linux
+            home / "Library" / "Application Support" / "ngrok" / "ngrok.yml",  # macOS
         ]
         for config_path in config_paths:
             if config_path.exists():
@@ -48,6 +49,7 @@ def get_ngrok_authtoken():
 
 @app.command()
 def start(
+    directory: str = typer.Option(None, help="The directory to run the server on."),
     port: int = typer.Option(5000, help="The local port to run the server on."),
     auth_token: Optional[str] = typer.Option(
         None,
@@ -69,6 +71,8 @@ def start(
         raise typer.Exit(code=1)
 
     current_dir = Path.cwd()
+    if directory:
+        current_dir = Path(directory)
     project_dir = None
 
     # Check if the current directory is 'agent-store'
@@ -120,6 +124,7 @@ def start(
     if result.get("success"):
         print("Dev mode started successfully:")
         print(f"  Public URL: {result.get('public_url')}")
+        print(f"  Hub URL: {result.get('hub_url')}")
 
         try:
             pyperclip.copy(str(result.get("public_url")))

@@ -21,3 +21,8 @@ a4e = "a4e.cli:app"
 
 [tool.setuptools.package-data]
 "a4e" = ["templates/*"]
+
+[dependency-groups]
+dev = [
+    "types-pyperclip>=1.9.0.20250801",
+]
