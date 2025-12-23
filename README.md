@@ -37,13 +37,13 @@ The **A4E MCP Server** enables creators to build agents using natural language d
    - **Name**: `a4e`
    - **Type**: `command`
    - **Command**: `uv`
-   - **Args**: `run a4e_mcp/server.py` (Absolute path recommended)
+   - **Args**: `run a4e/server.py` (Absolute path recommended)
 
    _Example Absolute Path Config:_
 
    ```bash
    Command: /Users/yourname/.cargo/bin/uv
-   Args: run /absolute/path/to/a4e-mcp-server/a4e_mcp/server.py
+   Args: run /absolute/path/to/a4e-mcp-server/a4e/server.py
    ```
 
    _Example mcp.json configuration:_
@@ -53,7 +53,7 @@ The **A4E MCP Server** enables creators to build agents using natural language d
       "mcpServers": {
          "a4e": {
             "command": "uv",
-            "args": ["run", "--directory", "${workspaceFolder}", "a4e_mcp/server.py"]
+            "args": ["run", "--directory", "${workspaceFolder}", "a4e/server.py"]
          }
       }
    }
