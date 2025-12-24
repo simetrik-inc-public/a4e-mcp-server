@@ -5,6 +5,7 @@ Structure:
 - project/      : Project initialization (initialize_project, get_agent_info)
 - agent_tools/  : Tool management (add_tool, list_tools)
 - views/        : View management (add_view, list_views)
+- skills/       : Skill management (add_skill, list_skills)
 - schemas/      : Schema generation (generate_schemas)
 - validation/   : Validation (validate)
 - dev/          : Development server (dev_start, dev_stop, check_environment)
@@ -19,6 +20,9 @@ from .agent_tools import add_tool, list_tools
 
 # Views management
 from .views import add_view, list_views
+
+# Skills management
+from .skills import add_skill, list_skills
 
 # Schema generation
 from .schemas import generate_schemas
@@ -42,6 +46,9 @@ __all__ = [
     # Views
     "add_view",
     "list_views",
+    # Skills
+    "add_skill",
+    "list_skills",
     # Schemas
     "generate_schemas",
     # Validation

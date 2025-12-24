@@ -1,0 +1,110 @@
+# Skills
+
+> Skills are the orchestration layer that connects user intents → tools → views.
+
+## Structure
+
+```
+skills/
+├── AGENTS.md           # This file
+├── schemas.json        # All skills definitions
+└── {skill_id}/
+    └── SKILL.md        # Instructions for View Renderer
+```
+
+## How Skills Work
+
+```
+User Message → Skill Selector → Matched Skill → View Renderer → Output
+                    ↓                  ↓              ↓
+              schemas.json        SKILL.md      tools/ + views/
+```
+
+1. **Skill Selector** reads `schemas.json` to find matching skill by `intent_triggers`
+2. **View Renderer** reads `SKILL.md` for instructions on how to call tools and prepare view params
+3. **Output** is rendered using the specified view from `views/`
+
+## Creating Skills
+
+Use the MCP tool `add_skill`:
+
+```python
+add_skill(
+    skill_id="show_products",
+    name="Show Products",
+    description="Display product catalog when user wants to browse",
+    intent_triggers=["show products", "ver productos", "browse catalog"],
+    output_view="products_list",
+    internal_tools=["get_products"],
+    agent_name="{{ agent_id }}"
+)
+```
+
+### Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `skill_id` | ✅ | Unique ID (snake_case) |
+| `name` | ✅ | Human-readable name |
+| `description` | ✅ | What the skill does and when to use it |
+| `intent_triggers` | ✅ | List of phrases that trigger this skill |
+| `output_view` | ✅ | View ID to render (or "NONE") |
+| `internal_tools` | ❌ | List of tools the skill uses |
+| `requires_auth` | ❌ | Whether auth is required (default: false) |
+
+## schemas.json Format
+
+```json
+{
+  "skill_id": {
+    "id": "skill_id",
+    "name": "Skill Name",
+    "description": "What this skill does",
+    "intent_triggers": ["phrase 1", "phrase 2"],
+    "requires_auth": false,
+    "internal_tools": ["tool_name"],
+    "output": {
+      "view": "view_id"
+    }
+  }
+}
+```
+
+## SKILL.md Format
+
+Each skill folder contains a `SKILL.md` that documents:
+
+1. **Purpose** - What the skill does
+2. **When to Use** - Intent triggers
+3. **Instructions for View Renderer** - How to call tools and prepare params
+4. **Expected Output** - Example code
+5. **Parameter Extraction Rules** - How to map user intents to parameters
+
+## Dependencies
+
+Skills connect to:
+
+- **Tools** (`tools/`) - Python functions that fetch/process data
+- **Views** (`views/`) - React components that render the UI
+
+### Validation
+
+Before creating a skill:
+1. The `output_view` must exist in `views/`
+2. The `internal_tools` should exist in `tools/schemas.json`
+
+## Listing Skills
+
+Use the MCP tool `list_skills`:
+
+```python
+list_skills(agent_name="{{ agent_id }}")
+```
+
+## Best Practices
+
+1. **Specific triggers** - Avoid generic phrases that could match multiple skills
+2. **Clear descriptions** - Help the Skill Selector understand when to use this skill
+3. **Document SKILL.md** - The View Renderer relies on this for execution
+4. **Validate dependencies** - Ensure tools and views exist before creating skills
+
