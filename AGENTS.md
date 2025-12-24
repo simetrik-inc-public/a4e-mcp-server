@@ -11,12 +11,12 @@ A4E MCP Server is a Model Context Protocol (MCP) server toolkit for building, ma
 - Install dependencies: `uv sync`
 - Run MCP server: `uv run a4e`
 - Run with project directory: `uv run a4e --project-dir /path/to/project`
-- Test imports: `python -c "from a4e_mcp.server import main; print('OK')"`
+- Test imports: `python -c "from a4e.server import main; print('OK')"`
 
 ## Project Structure
 
 ```
-a4e_mcp/
+a4e/
 ├── core.py                 # MCP instance, shared utilities (get_project_dir, sanitize_input)
 ├── server.py               # Entry point, imports and registers all tools
 ├── dev_runner.py           # Development server runner
@@ -25,11 +25,15 @@ a4e_mcp/
 │   ├── metadata.json.j2
 │   ├── prompt.md.j2
 │   ├── tool.py.j2
-│   └── view.tsx.j2
+│   ├── view.tsx.j2
+│   └── skills/
+│       ├── agents.md.j2    # Template for skills/AGENTS.md
+│       └── skill.md.j2     # Template for skills/{id}/SKILL.md
 ├── tools/                  # MCP tools organized by section
 │   ├── project/            # initialize_project, get_agent_info
 │   ├── agent_tools/        # add_tool, list_tools
 │   ├── views/              # add_view, list_views, helpers
+│   ├── skills/             # add_skill, list_skills, helpers
 │   ├── schemas/            # generate_schemas
 │   ├── validation/         # validate
 │   ├── dev/                # dev_start, dev_stop, check_environment
@@ -41,13 +45,14 @@ a4e_mcp/
 
 ## Tools Folder Reference
 
-Each folder inside `a4e_mcp/tools/` has a specific purpose. Use this guide when adding new tools:
+Each folder inside `a4e/tools/` has a specific purpose. Use this guide when adding new tools:
 
 | Folder         | Purpose                    | When to use                                                               |
 | -------------- | -------------------------- | ------------------------------------------------------------------------- |
 | `project/`     | Agent project lifecycle    | Tools for initializing, configuring, or getting info about agent projects |
 | `agent_tools/` | Tool management for agents | Tools that create, modify, or list tools within an agent project          |
 | `views/`       | View/UI management         | Tools for creating, modifying, or listing React views in agents           |
+| `skills/`      | Skill orchestration        | Tools for creating skills that connect intents → tools → views            |
 | `schemas/`     | Schema generation          | Tools related to JSON schema generation from code                         |
 | `validation/`  | Validation & linting       | Tools that validate agent structure, syntax, or conventions               |
 | `dev/`         | Development workflow       | Tools for local development: servers, tunnels, environment checks         |
@@ -139,11 +144,33 @@ When `initialize_project` creates an agent, it generates:
 │   └── view_renderer.md
 ├── tools/
 │   └── schemas.json
-└── views/
-    ├── welcome/
-    │   └── view.tsx
+├── views/
+│   ├── welcome/
+│   │   └── view.tsx
+│   └── schemas.json
+└── skills/
+    ├── AGENTS.md           # Skills documentation for AI agents
+    ├── show_welcome/
+    │   └── SKILL.md
     └── schemas.json
 ```
+
+## Validation
+
+The `validate` tool checks agent integrity before deployment:
+
+| Check              | Type          | Description                                                       |
+| ------------------ | ------------- | ----------------------------------------------------------------- |
+| Required files     | Error         | agent.py, metadata.json, prompts/agent.md, views/welcome/view.tsx |
+| Python syntax      | Error         | All .py files must be valid Python                                |
+| Type hints         | Error         | Public functions must have type hints                             |
+| Tools schemas      | Error         | tools/schemas.json must exist if tools/ has .py files             |
+| Views schemas      | Error         | views/schemas.json must exist if views/ has view folders          |
+| Skills schemas     | Error         | skills/schemas.json must exist if skills/ has folders             |
+| Skill SKILL.md     | Warning       | Each skill should have SKILL.md documentation                     |
+| Skill dependencies | Error/Warning | output.view must exist, internal_tools warned if missing          |
+| Duplicate triggers | Warning       | Same intent_trigger in multiple skills                            |
+| Orphan skills      | Warning       | Skill folders not in schemas.json                                 |
 
 ## Security Considerations
 

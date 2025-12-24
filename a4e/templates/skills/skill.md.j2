@@ -1,0 +1,93 @@
+# {{ skill_name }} Skill
+
+## Purpose
+
+{{ description }}
+
+## When to Use
+
+This skill is triggered by phrases like:
+{% for trigger in intent_triggers %}
+- "{{ trigger }}"
+{% endfor %}
+
+## Instructions for View Renderer
+
+{% if internal_tools %}
+### 1. Call Internal Tools
+
+{% for tool in internal_tools %}
+```python
+{{ tool }}_result = {{ tool }}({
+    # Add required parameters here
+})
+```
+{% endfor %}
+
+### 2. Prepare View Parameters
+{% else %}
+### 1. Prepare View Parameters
+{% endif %}
+
+{% if view_props %}
+Extract data and build the view params object:
+
+```python
+view_params = {
+{% for prop_name, prop_info in view_props.items() %}
+    "{{ prop_name }}": ...,  # {{ prop_info.get('type', 'any') }}{% if prop_info.get('description') %} - {{ prop_info.get('description') }}{% endif %}
+
+{% endfor %}
+}
+```
+
+### View Props Reference
+
+| Property | Type | Description |
+|----------|------|-------------|
+{% for prop_name, prop_info in view_props.items() %}
+| `{{ prop_name }}` | {{ prop_info.get('type', 'any') }} | {{ prop_info.get('description', '-') }} |
+{% endfor %}
+{% else %}
+```python
+view_params = {
+    # Define view parameters based on tool results
+}
+```
+{% endif %}
+
+## Expected Output
+
+```python
+{% if internal_tools %}
+# Step 1: Call tools to get data
+{% for tool in internal_tools %}
+{{ tool }}_data = {{ tool }}({})
+{% endfor %}
+
+# Step 2: Process and prepare view params
+{% endif %}
+view_params = {
+{% for prop_name, prop_info in view_props.items() %}
+    "{{ prop_name }}": None,  # TODO: Set from {% if internal_tools %}tool results{% else %}context{% endif %}
+
+{% endfor %}
+}
+```
+
+## Parameter Extraction Rules
+
+Map user intents to parameters:
+
+| User Says | Extracted Parameters |
+|-----------|---------------------|
+{% for trigger in intent_triggers[:3] %}
+| "{{ trigger }}" | `{}` |
+{% endfor %}
+
+## Notes
+
+- **Output view:** `{{ output_view }}`
+{% if requires_auth %}- **Authentication:** Required{% else %}- **Authentication:** Not required{% endif %}
+{% if internal_tools %}- **Dependencies:** {{ internal_tools | join(', ') }}{% endif %}
+

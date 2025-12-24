@@ -3,7 +3,9 @@ Validate agent structure tool.
 """
 
 from typing import Optional
+from collections import defaultdict
 import ast
+import json
 
 from ...core import mcp, get_project_dir
 
@@ -18,6 +20,7 @@ def validate(strict: bool = True, agent_name: Optional[str] = None) -> dict:
     - Python syntax valid
     - Type hints present
     - Schemas up-to-date
+    - Skills integrity (triggers, dependencies, orphans)
     """
     project_dir = get_project_dir(agent_name)
     required_files = [
@@ -38,9 +41,10 @@ def validate(strict: bool = True, agent_name: Optional[str] = None) -> dict:
             "error": f"Missing required files in {project_dir}: {', '.join(missing)}",
         }
 
-    if strict:
-        errors = []
+    errors = []
+    warnings = []
 
+    if strict:
         # 1. Check Python syntax and type hints
         python_files = [project_dir / "agent.py"]
         tools_dir = project_dir / "tools"
@@ -69,11 +73,6 @@ def validate(strict: bool = True, agent_name: Optional[str] = None) -> dict:
                                     f"Missing type hint for argument '{arg.arg}' in {py_file.name}:{node.name}"
                                 )
 
-                        # Check return annotation
-                        if node.returns is None:
-                            # Optional: maybe not enforce return types for everything, but good for strict mode
-                            pass
-
             except SyntaxError as e:
                 errors.append(f"Syntax error in {py_file.name}: {e}")
             except Exception as e:
@@ -89,7 +88,6 @@ def validate(strict: bool = True, agent_name: Optional[str] = None) -> dict:
         # 3. Check view schemas
         views_dir = project_dir / "views"
         if views_dir.exists():
-            # Find view directories (not __init__.py files)
             view_dirs = [
                 d
                 for d in views_dir.iterdir()
@@ -100,12 +98,111 @@ def validate(strict: bool = True, agent_name: Optional[str] = None) -> dict:
                     "Views exist but views/schemas.json is missing. Run generate_schemas."
                 )
 
-        if errors:
-            return {
-                "success": False,
-                "error": "Strict validation failed",
-                "details": errors,
-            }
+        # 4. Validate skills integrity
+        skills_dir = project_dir / "skills"
+        if skills_dir.exists():
+            skill_errors, skill_warnings = _validate_skills(
+                skills_dir, tools_dir, views_dir
+            )
+            errors.extend(skill_errors)
+            warnings.extend(skill_warnings)
 
-    return {"success": True, "message": "Agent structure is valid"}
+    if errors:
+        result = {
+            "success": False,
+            "error": "Validation failed",
+            "details": errors,
+        }
+        if warnings:
+            result["warnings"] = warnings
+        return result
 
+    result = {"success": True, "message": "Agent structure is valid"}
+    if warnings:
+        result["warnings"] = warnings
+    return result
+
+
+def _validate_skills(skills_dir, tools_dir, views_dir) -> tuple:
+    """
+    Validate skills for integrity issues.
+    
+    Returns:
+        Tuple of (errors, warnings)
+    """
+    errors = []
+    warnings = []
+    
+    schema_file = skills_dir / "schemas.json"
+    
+    # Check if schemas.json exists when skill folders exist
+    skill_folders = [d for d in skills_dir.iterdir() if d.is_dir()]
+    if skill_folders and not schema_file.exists():
+        errors.append("Skills exist but skills/schemas.json is missing.")
+        return errors, warnings
+    
+    if not schema_file.exists():
+        return errors, warnings
+    
+    try:
+        schemas = json.loads(schema_file.read_text())
+    except json.JSONDecodeError as e:
+        errors.append(f"Invalid JSON in skills/schemas.json: {e}")
+        return errors, warnings
+    
+    # Get existing tools and views for dependency validation
+    existing_tools = set()
+    if tools_dir.exists():
+        tools_schema = tools_dir / "schemas.json"
+        if tools_schema.exists():
+            try:
+                ts = json.loads(tools_schema.read_text())
+                if isinstance(ts, dict):
+                    existing_tools = set(ts.keys())
+                else:
+                    existing_tools = {t.get("name") for t in ts if isinstance(t, dict)}
+            except Exception:
+                pass
+    
+    existing_views = set()
+    if views_dir.exists():
+        existing_views = {d.name for d in views_dir.iterdir() if d.is_dir() and (d / "view.tsx").exists()}
+    
+    # Track triggers for duplicate detection
+    trigger_to_skills = defaultdict(list)
+    
+    for skill_id, skill_data in schemas.items():
+        # Check SKILL.md exists
+        skill_md = skills_dir / skill_id / "SKILL.md"
+        if not skill_md.exists():
+            warnings.append(f"Skill '{skill_id}' missing SKILL.md documentation")
+        
+        # Check output view exists
+        output = skill_data.get("output", {})
+        view_id = output.get("view")
+        if view_id and view_id != "NONE" and view_id not in existing_views:
+            errors.append(f"Skill '{skill_id}' references non-existent view '{view_id}'")
+        
+        # Check internal tools exist
+        internal_tools = skill_data.get("internal_tools", [])
+        for tool in internal_tools:
+            if tool not in existing_tools:
+                warnings.append(f"Skill '{skill_id}' references tool '{tool}' not in schemas")
+        
+        # Collect triggers for duplicate detection
+        triggers = skill_data.get("intent_triggers", [])
+        for trigger in triggers:
+            trigger_lower = trigger.lower().strip()
+            trigger_to_skills[trigger_lower].append(skill_id)
+    
+    # Check for orphan SKILL.md (folder exists but not in schemas.json)
+    for skill_folder in skill_folders:
+        if skill_folder.name not in schemas:
+            warnings.append(f"Orphan skill folder '{skill_folder.name}' not in schemas.json")
+    
+    # Detect duplicate triggers
+    for trigger, skills in trigger_to_skills.items():
+        if len(skills) > 1:
+            warnings.append(f"Duplicate trigger '{trigger}' in skills: {', '.join(skills)}")
+    
+    return errors, warnings

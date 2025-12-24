@@ -63,6 +63,7 @@ def initialize_project(
         (project_dir / "prompts").mkdir(exist_ok=True)
         (project_dir / "tools").mkdir(exist_ok=True)
         (project_dir / "views").mkdir(exist_ok=True)
+        (project_dir / "skills").mkdir(exist_ok=True)
 
         # Sanitize inputs before template rendering
         safe_name = sanitize_input(name)
@@ -105,6 +106,11 @@ def initialize_project(
             description=safe_description,
         )
         (project_dir / "AGENTS.md").write_text(agents_md)
+
+        # Generate skills/AGENTS.md (skills documentation)
+        skills_agents_template = jinja_env.get_template("skills/agents.md.j2")
+        skills_agents_md = skills_agents_template.render(agent_id=safe_name)
+        (project_dir / "skills/AGENTS.md").write_text(skills_agents_md)
 
         # Create welcome view (MANDATORY)
         from ..views.helpers import create_view
@@ -154,6 +160,20 @@ def example_tool(
                 project_dir=project_dir,
             )
 
+        # Create welcome skill (connects welcome view)
+        from ..skills.helpers import create_skill
+        create_skill(
+            skill_id="show_welcome",
+            name="Show Welcome",
+            description="Display the welcome screen. Use when user wants to go home or start over.",
+            intent_triggers=["start over", "go home", "main menu", "welcome", "inicio", "volver al inicio"],
+            output_view="welcome",
+            internal_tools=[],
+            requires_auth=False,
+            view_props={"title": {"type": "string", "description": "Welcome title"}},
+            project_dir=project_dir,
+        )
+
         # Auto-generate schemas after project initialization
         from ..schemas import generate_schemas
         generate_schemas(force=False, agent_name=name)
@@ -172,6 +192,7 @@ def example_tool(
             "next_steps": [
                 f"Add tools: add_tool(..., agent_name='{name}')",
                 f"Add views: add_view(..., agent_name='{name}')",
+                f"Add skills: add_skill(..., agent_name='{name}')",
                 "Start dev server using 'dev_start'",
             ],
         }

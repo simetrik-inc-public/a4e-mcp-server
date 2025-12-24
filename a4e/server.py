@@ -10,6 +10,34 @@ import argparse
 
 from .core import mcp, set_project_dir
 
+# Import all tools to register them with the MCP server
+# Each tool uses the @mcp.tool() decorator from core.py
+from .tools import (
+    # Project
+    initialize_project,
+    get_agent_info,
+    # Agent tools
+    add_tool,
+    list_tools,
+    # Views
+    add_view,
+    list_views,
+    # Skills
+    add_skill,
+    list_skills,
+    # Schemas
+    generate_schemas,
+    # Validation
+    validate,
+    # Development
+    dev_start,
+    dev_stop,
+    check_environment,
+    # Deployment
+    deploy,
+)
+
+
 def main():
     """Entry point for the CLI"""
     # Parse CLI arguments (standard MCP pattern)
@@ -23,7 +51,7 @@ def main():
         "Agents will be created in {project-dir}/file-store/agent-store/",
     )
 
-    args = parser.parse_known_args()
+    args, unknown = parser.parse_known_args()
 
     # Set global project directory
     if args.project_dir:
