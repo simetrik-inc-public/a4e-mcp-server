@@ -1,0 +1,192 @@
+# AGENTS.md — Tools Directory
+
+> This file provides context and instructions for AI coding agents working on tools in this A4E agent project.
+
+## Overview
+
+This `tools/` directory contains Python functions decorated with `@tool` that give the agent the ability to perform actions or retrieve information. Each tool is a self-contained Python file that gets automatically discovered and registered.
+
+## Directory Structure
+
+```
+tools/
+├── AGENTS.md           # This file
+├── schemas.json        # Auto-generated schemas (do not edit manually)
+├── example_tool.py     # Example tool (if template includes it)
+└── <your_tools>.py     # Your custom tools
+```
+
+## Code Style
+
+- Python 3.11+ required
+- Use type hints for ALL function parameters and return types
+- Use `Optional[T]` for optional parameters, not `T | None`
+- Snake_case for function and file names
+- Each tool must return a `dict` with a clear response structure
+
+## Tool Structure
+
+Every tool file must follow this pattern:
+
+```python
+from a4e.sdk import tool
+from typing import Optional, List, Any
+
+@tool
+def tool_name(
+    required_param: str,
+    optional_param: Optional[int] = None
+) -> dict:
+    """
+    Brief description of what the tool does.
+
+    Args:
+        required_param: Description of this parameter
+        optional_param: Description of this optional parameter
+    """
+    # Implementation here
+    return {
+        "status": "success",
+        "message": "Result message",
+        "data": {}  # Optional: include relevant data
+    }
+```
+
+## Type Mapping
+
+When creating tools, use these Python types:
+
+| Use Case          | Type                     | Example                        |
+| ----------------- | ------------------------ | ------------------------------ |
+| Text              | `str`                    | `name: str`                    |
+| Integer           | `int`                    | `count: int`                   |
+| Decimal           | `float`                  | `price: float`                 |
+| Boolean           | `bool`                   | `active: bool`                 |
+| List              | `List[T]`                | `items: List[str]`             |
+| Dictionary        | `dict`                   | `config: dict`                 |
+| Optional          | `Optional[T]`            | `limit: Optional[int] = None`  |
+| Literal choices   | `Literal["a", "b"]`      | `mode: Literal["fast", "slow"]`|
+| Any type          | `Any`                    | `data: Any`                    |
+
+## Return Value Conventions
+
+Always return a dictionary with consistent keys:
+
+```python
+# Success response
+return {
+    "status": "success",
+    "message": "Human-readable success message",
+    "data": {...}  # Tool-specific data
+}
+
+# Error response
+return {
+    "status": "error",
+    "message": "Human-readable error message",
+    "error_code": "SPECIFIC_ERROR"  # Optional: machine-readable code
+}
+```
+
+## Naming Conventions
+
+- **File names**: `snake_case.py` (e.g., `calculate_bmi.py`, `fetch_weather.py`)
+- **Function names**: Match file name exactly (e.g., `def calculate_bmi(...)`)
+- **Parameter names**: Descriptive snake_case (e.g., `user_weight_kg`, `max_results`)
+
+## Adding a New Tool
+
+1. Create a new file: `tools/<tool_name>.py`
+2. Use the `@tool` decorator from `a4e.sdk`
+3. Add comprehensive docstring with Args section
+4. Implement the logic returning a dict
+5. Run schema generation to update `schemas.json`
+
+## Schema Generation
+
+Schemas are auto-generated from your tool code. After adding or modifying tools:
+
+- Schemas are regenerated automatically when using MCP tools
+- The `schemas.json` file is auto-generated — **do not edit manually**
+- Docstrings become the tool's description in the schema
+
+## Testing Your Tools
+
+Before deployment, verify your tools:
+
+1. Check syntax: `python -m py_compile tools/<tool_name>.py`
+2. Import test: `python -c "from tools.<tool_name> import <tool_name>; print('OK')"`
+3. Run via dev server to test integration
+
+## Common Patterns
+
+### API Calls
+
+```python
+import requests
+
+@tool
+def fetch_data(endpoint: str) -> dict:
+    """Fetch data from an API endpoint."""
+    try:
+        response = requests.get(endpoint, timeout=10)
+        response.raise_for_status()
+        return {"status": "success", "data": response.json()}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+```
+
+### Calculations
+
+```python
+@tool
+def calculate_bmi(weight_kg: float, height_m: float) -> dict:
+    """Calculate Body Mass Index."""
+    if height_m <= 0:
+        return {"status": "error", "message": "Height must be positive"}
+    
+    bmi = weight_kg / (height_m ** 2)
+    return {
+        "status": "success",
+        "bmi": round(bmi, 2),
+        "category": "normal" if 18.5 <= bmi < 25 else "other"
+    }
+```
+
+### Data Transformation
+
+```python
+from typing import List
+
+@tool
+def format_list(items: List[str], separator: str = ", ") -> dict:
+    """Format a list of items into a string."""
+    return {
+        "status": "success",
+        "result": separator.join(items),
+        "count": len(items)
+    }
+```
+
+## Security Considerations
+
+- Never hardcode sensitive data (API keys, passwords)
+- Validate and sanitize all user inputs
+- Use try/except for external calls
+- Limit resource usage (timeouts, max sizes)
+
+## Troubleshooting
+
+### Tool not appearing in schema
+
+- Verify the `@tool` decorator is present
+- Check for syntax errors in the file
+- Ensure the function has type hints and docstring
+- Run schema generation manually
+
+### Import errors
+
+- Check all imports are available in the environment
+- Use absolute imports when possible
+- Verify dependency is in the project requirements
+

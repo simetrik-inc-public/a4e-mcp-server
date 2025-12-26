@@ -1,0 +1,206 @@
+# AGENTS.md — Prompts Directory
+
+> This file provides context and instructions for AI coding agents working on prompts in this A4E agent project.
+
+## Overview
+
+This `prompts/` directory contains markdown files that define the agent's personality, behavior, and specialized instructions. These prompts are loaded and used by the A4E runtime.
+
+## Directory Structure
+
+```
+prompts/
+├── AGENTS.md           # This file
+├── agent.md            # Main agent personality and instructions
+├── reviewer.md         # Review/validation prompts (optional)
+└── view_renderer.md    # View rendering instructions (optional)
+```
+
+## Prompt Files
+
+### agent.md (Required)
+
+The main prompt that defines the agent's:
+- **Identity**: Who the agent is and its expertise
+- **Mission**: Primary goals and purpose
+- **Capabilities**: What the agent can do
+- **Guidelines**: How to interact with users
+- **Constraints**: What the agent should avoid
+
+### reviewer.md (Optional)
+
+Used for review and validation workflows:
+- Quality checks on agent responses
+- Fact verification instructions
+- Style and tone guidelines
+
+### view_renderer.md (Optional)
+
+Instructions for rendering views:
+- When to use specific views
+- Data formatting for views
+- Fallback behavior
+
+## Writing Effective Prompts
+
+### Structure
+
+Use clear markdown structure:
+
+```markdown
+# Agent Name
+
+You are [Agent Name], a specialized AI assistant for [domain].
+
+## Your Mission
+
+[Clear statement of purpose]
+
+## Capabilities
+
+- Capability 1
+- Capability 2
+- Capability 3
+
+## Guidelines
+
+1. Be helpful and clear
+2. Use tools appropriately
+3. Display rich views when beneficial
+
+## Constraints
+
+- Never do X
+- Always verify Y
+- Avoid Z in responses
+```
+
+### Best Practices
+
+1. **Be specific**: Define exact behaviors, not vague guidelines
+2. **Use examples**: Show expected input/output patterns
+3. **Set boundaries**: Clearly state what the agent should NOT do
+4. **Maintain consistency**: Keep tone and style uniform
+5. **Reference tools**: Mention available tools and when to use them
+
+### Variables and Templates
+
+Prompts can use template variables:
+
+```markdown
+# {{ display_name }}
+
+You are {{ display_name }}, specialized in {{ category }}.
+
+{{ description }}
+```
+
+Available variables:
+- `{{ display_name }}` - Human-readable agent name
+- `{{ category }}` - Agent category
+- `{{ description }}` - Agent description
+
+## Tool Integration
+
+Reference tools in your prompts:
+
+```markdown
+## Available Tools
+
+- **calculate_bmi**: Use when user asks about BMI calculations
+- **fetch_nutrition**: Use to get nutritional information
+- **create_meal_plan**: Use for meal planning requests
+
+When a user asks about nutrition, first use `fetch_nutrition` to get data,
+then present it using the `NutritionView` component.
+```
+
+## View Integration
+
+Guide view usage in prompts:
+
+```markdown
+## View Usage
+
+When displaying results, use appropriate views:
+
+- **Welcome**: Show on first interaction
+- **MealPlan**: Display meal plans with full details
+- **NutritionFacts**: Show nutritional breakdowns
+
+Always prefer views over plain text for structured data.
+```
+
+## Prompt Engineering Tips
+
+### Context Setting
+
+```markdown
+You are an expert nutritionist with 20 years of experience.
+You specialize in personalized meal planning and dietary advice.
+Your approach is warm, encouraging, and evidence-based.
+```
+
+### Behavioral Guidelines
+
+```markdown
+## Response Format
+
+1. Acknowledge the user's question
+2. Provide relevant information
+3. Offer actionable next steps
+4. Ask follow-up questions if needed
+
+## Tone
+
+- Professional but friendly
+- Encouraging, not judgmental
+- Clear and concise
+- Use simple language
+```
+
+### Error Handling
+
+```markdown
+## When You Don't Know
+
+If you cannot answer a question:
+1. Acknowledge the limitation honestly
+2. Suggest alternative resources
+3. Offer to help with related topics
+4. Never make up information
+```
+
+## Testing Prompts
+
+Before deployment:
+
+1. **Read through** the entire prompt for clarity
+2. **Test edge cases** - unusual inputs and requests
+3. **Check consistency** - does the agent maintain character?
+4. **Verify tool usage** - are tools called appropriately?
+5. **Review view rendering** - are views displayed correctly?
+
+## Troubleshooting
+
+### Agent not following instructions
+
+- Make instructions more explicit
+- Add examples of expected behavior
+- Reduce ambiguity in guidelines
+- Check for conflicting instructions
+
+### Inconsistent personality
+
+- Strengthen identity statements
+- Add more context about the character
+- Include sample responses
+- Review and remove conflicting guidelines
+
+### Tool misuse
+
+- Clarify when each tool should be used
+- Provide examples of correct tool invocation
+- Add constraints about tool usage
+- Define fallback behavior
+
