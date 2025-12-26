@@ -1,0 +1,224 @@
+# AGENTS.md — Views Directory
+
+> This file provides context and instructions for AI coding agents working on views in this A4E agent project.
+
+## Overview
+
+This `views/` directory contains React components that provide rich graphical interfaces for the agent's responses. Each view is a self-contained directory with a `view.tsx` file.
+
+## Directory Structure
+
+```
+views/
+├── AGENTS.md           # This file
+├── schemas.json        # Auto-generated schemas (do not edit manually)
+├── welcome/            # Mandatory welcome view
+│   └── view.tsx
+└── <view_id>/          # Your custom views
+    └── view.tsx
+```
+
+## Code Style
+
+- TypeScript with React
+- Use functional components with hooks
+- camelCase for variables and functions
+- PascalCase for component names
+- Props interface must be explicitly defined
+
+## View Structure
+
+Every view file must follow this pattern:
+
+```tsx
+"use client";
+import React from "react";
+import { a4e } from "@/lib/sdk";
+
+interface ViewNameProps {
+  title: string;
+  count: number;
+  items?: string[];
+}
+
+export default function ViewNameView(props: ViewNameProps) {
+  const { title, count, items = [] } = props;
+
+  return (
+    <div className="p-6">
+      <h2 className="text-xl font-bold">{title}</h2>
+      <p>Count: {count}</p>
+      {items.length > 0 && (
+        <ul>
+          {items.map((item, i) => (
+            <li key={i}>{item}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+```
+
+## Naming Conventions
+
+- **Directory names**: `snake_case` (e.g., `meal_plan`, `bmi_result`)
+- **Component names**: `PascalCase + View` (e.g., `MealPlanView`, `BmiResultView`)
+- **Prop names**: `camelCase` (e.g., `userName`, `maxItems`)
+
+## Type Mapping
+
+When defining props, use TypeScript types:
+
+| Use Case          | Type               | Example                     |
+| ----------------- | ------------------ | --------------------------- |
+| Text              | `string`           | `title: string`             |
+| Integer/Decimal   | `number`           | `count: number`             |
+| Boolean           | `boolean`          | `isActive: boolean`         |
+| Array             | `T[]`              | `items: string[]`           |
+| Object            | `{ key: type }`    | `user: { name: string }`    |
+| Optional          | `T?` or `T \| undefined` | `subtitle?: string`   |
+| Union             | `"a" \| "b"`       | `status: "active" \| "inactive"` |
+
+## Adding a New View
+
+1. Create directory: `views/<view_id>/`
+2. Create file: `views/<view_id>/view.tsx`
+3. Define props interface at the top
+4. Export default functional component
+5. Run schema generation to update `schemas.json`
+
+## Schema Generation
+
+Schemas are auto-generated from your TypeScript interfaces:
+
+- Props interface becomes the view's input schema
+- Type annotations are converted to JSON Schema types
+- Comments become descriptions in the schema
+- The `schemas.json` file is auto-generated — **do not edit manually**
+
+## Styling Guidelines
+
+Use Tailwind CSS classes for styling:
+
+```tsx
+// Good: Tailwind utilities
+<div className="p-4 bg-white rounded-lg shadow-md">
+  <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+</div>
+
+// Avoid: Inline styles (except for dynamic values)
+<div style={{ padding: '16px' }}>{content}</div>
+```
+
+## Common Patterns
+
+### Card Layout
+
+```tsx
+export default function CardView(props: { title: string; content: string }) {
+  return (
+    <div className="bg-white rounded-xl shadow-lg p-6 max-w-md">
+      <h3 className="text-xl font-bold mb-4">{props.title}</h3>
+      <p className="text-gray-600">{props.content}</p>
+    </div>
+  );
+}
+```
+
+### List Display
+
+```tsx
+interface ListViewProps {
+  title: string;
+  items: Array<{ id: string; name: string }>;
+}
+
+export default function ListView({ title, items }: ListViewProps) {
+  return (
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold">{title}</h2>
+      <ul className="divide-y divide-gray-200">
+        {items.map((item) => (
+          <li key={item.id} className="py-3">
+            {item.name}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+### Data Visualization
+
+```tsx
+interface ChartViewProps {
+  data: Array<{ label: string; value: number }>;
+}
+
+export default function ChartView({ data }: ChartViewProps) {
+  const max = Math.max(...data.map((d) => d.value));
+  
+  return (
+    <div className="space-y-2">
+      {data.map((item, i) => (
+        <div key={i} className="flex items-center gap-4">
+          <span className="w-24 text-sm">{item.label}</span>
+          <div 
+            className="h-6 bg-blue-500 rounded"
+            style={{ width: `${(item.value / max) * 100}%` }}
+          />
+          <span className="text-sm font-medium">{item.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+## A4E SDK Integration
+
+Use the A4E SDK for agent interactions:
+
+```tsx
+import { a4e } from "@/lib/sdk";
+
+export default function InteractiveView(props: { query: string }) {
+  const handleAction = async () => {
+    // Trigger agent action
+    await a4e.triggerAction("perform_search", { query: props.query });
+  };
+
+  return (
+    <button onClick={handleAction} className="btn-primary">
+      Search
+    </button>
+  );
+}
+```
+
+## Accessibility
+
+- Use semantic HTML elements (`<main>`, `<nav>`, `<article>`)
+- Add `alt` text to images
+- Ensure sufficient color contrast
+- Support keyboard navigation
+- Use ARIA labels where needed
+
+## Troubleshooting
+
+### View not appearing in schema
+
+- Verify the props interface is exported or defined at module level
+- Check for TypeScript syntax errors
+- Ensure the component is the default export
+- Run schema generation manually
+
+### Styling not applied
+
+- Verify Tailwind classes are valid
+- Check for typos in class names
+- Ensure the build process includes Tailwind
+- Use browser dev tools to inspect applied styles
+

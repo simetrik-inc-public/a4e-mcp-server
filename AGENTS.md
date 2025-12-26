@@ -21,11 +21,19 @@ a4e/
 ├── server.py               # Entry point, imports and registers all tools
 ├── dev_runner.py           # Development server runner
 ├── templates/              # Jinja2 templates for code generation
+│   ├── agent.md.j2         # Root AGENTS.md template
+│   ├── agents.md.j2        # Project AGENTS.md template
 │   ├── agent.py.j2
 │   ├── metadata.json.j2
 │   ├── prompt.md.j2
 │   ├── tool.py.j2
 │   ├── view.tsx.j2
+│   ├── tools/
+│   │   └── agent.md.j2     # Tools directory AGENTS.md template
+│   ├── views/
+│   │   └── agent.md.j2     # Views directory AGENTS.md template
+│   ├── prompts/
+│   │   └── agent.md.j2     # Prompts directory AGENTS.md template
 │   └── skills/
 │       ├── agents.md.j2    # Template for skills/AGENTS.md
 │       └── skill.md.j2     # Template for skills/{id}/SKILL.md
@@ -137,14 +145,17 @@ When `initialize_project` creates an agent, it generates:
 {agent-name}/
 ├── agent.py
 ├── metadata.json
-├── AGENTS.md
+├── AGENTS.md               # Root project context for AI agents
 ├── prompts/
+│   ├── AGENTS.md           # Prompts development guide
 │   ├── agent.md
 │   ├── reviewer.md
 │   └── view_renderer.md
 ├── tools/
+│   ├── AGENTS.md           # Tools development guide
 │   └── schemas.json
 ├── views/
+│   ├── AGENTS.md           # Views development guide
 │   ├── welcome/
 │   │   └── view.tsx
 │   └── schemas.json

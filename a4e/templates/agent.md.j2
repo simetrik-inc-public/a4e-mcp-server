@@ -1,0 +1,168 @@
+# AGENTS.md — A4E Agent Project
+
+> This file provides context and instructions for AI coding agents working on A4E agent projects.
+
+## Overview
+
+A4E agents are AI assistants that combine natural language understanding with custom capabilities defined by **Tools** and **Views**. This template provides guidance for developing and maintaining A4E agents.
+
+## Project Structure
+
+```
+{agent-name}/
+├── AGENTS.md           # This file - context for AI coding agents
+├── agent.py            # Agent factory and initialization
+├── metadata.json       # Agent metadata for the marketplace
+├── prompts/
+│   ├── AGENTS.md       # Prompt development guide
+│   ├── agent.md        # Main agent personality and instructions
+│   ├── reviewer.md     # Review/validation prompts
+│   └── view_renderer.md # View rendering instructions
+├── tools/
+│   ├── AGENTS.md       # Tool development guide
+│   ├── schemas.json    # Auto-generated tool schemas
+│   └── *.py            # Python tool files
+├── views/
+│   ├── AGENTS.md       # View development guide
+│   ├── schemas.json    # Auto-generated view schemas
+│   └── */view.tsx      # React view components
+└── skills/             # Optional: reusable skill modules
+    └── AGENTS.md       # Skill development guide
+```
+
+## Quick Start
+
+| Task                    | How to Do It                                |
+| ----------------------- | ------------------------------------------- |
+| Add a tool              | Create `tools/<name>.py` with `@tool`       |
+| Add a view              | Create `views/<id>/view.tsx`                |
+| Edit personality        | Modify `prompts/agent.md`                   |
+| Update metadata         | Edit `metadata.json`                        |
+| Generate schemas        | Run `generate_schemas` MCP tool             |
+| Start dev server        | Run `dev_start` MCP tool                    |
+| Deploy to Hub           | Run `deploy` MCP tool                       |
+
+## Code Style
+
+### Python (Tools)
+
+- Python 3.11+ required
+- Type hints for ALL parameters and return types
+- Use `Optional[T]` for optional params
+- Snake_case for functions and variables
+- Return `dict` with `status` and data
+
+### TypeScript (Views)
+
+- Functional components with hooks
+- Explicit props interfaces
+- camelCase for variables
+- PascalCase for components
+- Tailwind CSS for styling
+
+### Markdown (Prompts)
+
+- Clear section headings
+- Bullet points for guidelines
+- Examples for expected behavior
+- Template variables where needed
+
+## Key Files
+
+### agent.py
+
+Factory function that creates the agent instance:
+
+```python
+from a4e.sdk import AgentFactory
+
+async def create_agent(model_client, agent_id):
+    return await AgentFactory.create_agent(
+        agent_path=agent_id,
+        model_client=model_client
+    )
+```
+
+### metadata.json
+
+Agent marketplace metadata:
+
+```json
+{
+  "id": "agent-id",
+  "name": "Display Name",
+  "category": "Category",
+  "description": "...",
+  "version": "1.0.0"
+}
+```
+
+### prompts/agent.md
+
+Main personality and instructions:
+
+```markdown
+# Agent Name
+
+You are [Agent Name], a specialized AI assistant...
+
+## Your Mission
+## Capabilities
+## Guidelines
+## Constraints
+```
+
+## Schema Generation
+
+Schemas are automatically generated from code:
+
+- **Tools**: Parsed from Python `@tool` decorators and docstrings
+- **Views**: Parsed from TypeScript props interfaces
+
+**Never edit schema files manually** — run `generate_schemas` after changes.
+
+## Development Workflow
+
+1. **Create** - Add tools, views, or prompts
+2. **Generate** - Run `generate_schemas` to update schemas
+3. **Test** - Use `dev_start` to run locally
+4. **Iterate** - Refine based on testing
+5. **Deploy** - Use `deploy` to publish
+
+## Security
+
+- Never hardcode API keys or secrets
+- Use environment variables for sensitive data
+- Validate all user inputs in tools
+- Sanitize data before rendering in views
+- Handle errors gracefully
+
+## Troubleshooting
+
+### Tool not appearing
+
+1. Check `@tool` decorator is present
+2. Verify type hints and docstring
+3. Run `generate_schemas`
+
+### View not rendering
+
+1. Check default export
+2. Verify props interface
+3. Check for TypeScript errors
+
+### Agent not responding correctly
+
+1. Review `prompts/agent.md`
+2. Check tool implementations
+3. Verify schema generation ran
+
+## Subdirectory Guides
+
+Each subdirectory has its own `AGENTS.md` with specific guidance:
+
+- `tools/AGENTS.md` - Tool development patterns
+- `views/AGENTS.md` - View component patterns
+- `prompts/AGENTS.md` - Prompt engineering tips
+- `skills/AGENTS.md` - Skill module development
+

@@ -107,6 +107,16 @@ def initialize_project(
         )
         (project_dir / "AGENTS.md").write_text(agents_md)
 
+        # Generate subdirectory AGENTS.md files for AI coding agents
+        tools_agents_template = jinja_env.get_template("tools/agent.md.j2")
+        (project_dir / "tools" / "AGENTS.md").write_text(tools_agents_template.render())
+
+        views_agents_template = jinja_env.get_template("views/agent.md.j2")
+        (project_dir / "views" / "AGENTS.md").write_text(views_agents_template.render())
+
+        prompts_agents_template = jinja_env.get_template("prompts/agent.md.j2")
+        (project_dir / "prompts" / "AGENTS.md").write_text(prompts_agents_template.render())
+
         # Generate skills/AGENTS.md (skills documentation)
         skills_agents_template = jinja_env.get_template("skills/agents.md.j2")
         skills_agents_md = skills_agents_template.render(agent_id=safe_name)
@@ -198,4 +208,3 @@ def example_tool(
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
-
