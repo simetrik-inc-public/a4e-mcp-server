@@ -53,8 +53,11 @@ def add_tool(
         }
 
         for name, info in parameters.items():
-            # Create a copy to avoid modifying original dict
-            param_info = info.copy()
+            # Handle both simple format {'a': 'number'} and detailed format {'a': {'type': 'number', 'description': '...'}}
+            if isinstance(info, str):
+                param_info = {"type": info}
+            else:
+                param_info = info.copy()
             raw_type = param_info.get("type", "Any")
 
             # Map JSON type to Python type, or use as-is if not in map (allows direct Python types)

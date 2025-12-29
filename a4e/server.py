@@ -19,12 +19,15 @@ from .tools import (
     # Agent tools
     add_tool,
     list_tools,
+    remove_tool,
     # Views
     add_view,
     list_views,
+    remove_view,
     # Skills
     add_skill,
     list_skills,
+    remove_skill,
     # Schemas
     generate_schemas,
     # Validation

@@ -80,6 +80,12 @@ def run_agent_server(agent_path: Path, port: int):
     if views_schemas_path.exists():
         views_schemas = json.loads(views_schemas_path.read_text())
 
+    # Load skills schemas
+    skills_schemas_path = agent_path / "skills" / "schemas.json"
+    skills_schemas = {}
+    if skills_schemas_path.exists():
+        skills_schemas = json.loads(skills_schemas_path.read_text())
+
     # Load system prompt
     prompt_path = agent_path / "prompts" / "agent.md"
     system_prompt = ""
@@ -172,6 +178,23 @@ def run_agent_server(agent_path: Path, port: int):
             )
         return JSONResponse(views)
 
+    async def get_skills(request):
+        # Convert skills schema to frontend expected format
+        skills = []
+        for skill_id, skill_data in skills_schemas.items():
+            skills.append(
+                {
+                    "id": skill_data.get("id", skill_id),
+                    "name": skill_data.get("name", skill_id),
+                    "description": skill_data.get("description", ""),
+                    "intent_triggers": skill_data.get("intent_triggers", []),
+                    "requires_auth": skill_data.get("requires_auth", False),
+                    "internal_tools": skill_data.get("internal_tools", []),
+                    "output": skill_data.get("output", {}),
+                }
+            )
+        return JSONResponse(skills)
+
     async def get_view_source(request):
         """Get source code for a specific view"""
         view_id = request.path_params["view_id"]
@@ -213,14 +236,62 @@ def run_agent_server(agent_path: Path, port: int):
 
         try:
             payload = await request.json()
-        except:
+            print(f"[DEV] Received payload: {json.dumps(payload, indent=2)}")
+        except Exception as e:
+            print(f"[DEV] Error parsing payload: {e}")
             payload = {}
 
-        # Extract last user message
-        messages = payload.get("messages", [])
-        last_message = "Hello!"
-        if messages:
-            last_message = messages[-1].get("content", "")
+        # Extract user message - handle both formats:
+        # Format 1 (playground): {"message": "Hello", "currentState": {...}, "metadata": {...}}
+        # Format 2 (legacy): {"messages": [{"content": "Hello"}]}
+        last_message = payload.get("message", "")
+        if not last_message:
+            messages = payload.get("messages", [])
+            if messages:
+                last_message = messages[-1].get("content", "")
+        if not last_message:
+            last_message = "Hello!"
+
+        print(f"[DEV] Processing message: {last_message}")
+
+        # Check for view switch commands
+        message_lower = last_message.lower()
+        view_to_show = None
+        view_props = {}
+
+        if "show profile" in message_lower or "profile view" in message_lower:
+            view_to_show = "profile"
+            view_props = {
+                "userName": "Test User",
+                "email": "test@example.com",
+                "role": "Developer"
+            }
+        elif "show results" in message_lower or "results view" in message_lower:
+            view_to_show = "results"
+            view_props = {
+                "title": "Analysis Complete",
+                "summary": "Here are your test results",
+                "items": [
+                    {"title": "Test 1", "description": "First test passed", "value": "100%", "status": "success"},
+                    {"title": "Test 2", "description": "Minor issues found", "value": "85%", "status": "warning"},
+                    {"title": "Test 3", "description": "Needs attention", "value": "60%", "status": "error"}
+                ]
+            }
+        elif "show error" in message_lower or "error view" in message_lower:
+            view_to_show = "error"
+            view_props = {
+                "title": "Test Error",
+                "message": "This is a test error message to demonstrate the error view.",
+                "errorCode": "TEST_001",
+                "suggestion": "This is just a demo - no action needed!"
+            }
+        elif "show welcome" in message_lower or "welcome view" in message_lower:
+            view_to_show = "welcome"
+            view_props = {
+                "title": "Welcome Back!",
+                "subtitle": "Ready to help you",
+                "userName": "Developer"
+            }
 
         async def event_generator():
             # Simulate thinking delay
@@ -234,23 +305,49 @@ def run_agent_server(agent_path: Path, port: int):
             }
             await asyncio.sleep(0.5)
 
-            # 2. Stream text response
-            response_text = f"I received your message: '{last_message}'. I am running in Dev Mode via MCP!"
+            # 2. If view switch requested, send view event
+            if view_to_show:
+                response_text = f"Switching to {view_to_show} view..."
+                words = response_text.split(" ")
+                for word in words:
+                    yield {
+                        "data": json.dumps(
+                            {"type": "chat", "content": word + " ", "complete": False}
+                        )
+                    }
+                    await asyncio.sleep(0.05)
 
-            # Split into chunks
-            words = response_text.split(" ")
-            for word in words:
                 yield {
-                    "data": json.dumps(
-                        {"type": "chat", "content": word + " ", "complete": False}
-                    )
+                    "data": json.dumps({"type": "chat", "content": "", "complete": True})
                 }
-                await asyncio.sleep(0.1)
 
-            # 3. Complete chat
-            yield {
-                "data": json.dumps({"type": "chat", "content": "", "complete": True})
-            }
+                await asyncio.sleep(0.3)
+
+                # Send view event
+                yield {
+                    "data": json.dumps({
+                        "type": "view",
+                        "viewId": view_to_show,
+                        "props": view_props
+                    })
+                }
+            else:
+                # 3. Stream text response
+                response_text = f"I received your message: '{last_message}'. Try saying 'show profile', 'show results', 'show error', or 'show welcome' to switch views!"
+
+                words = response_text.split(" ")
+                for word in words:
+                    yield {
+                        "data": json.dumps(
+                            {"type": "chat", "content": word + " ", "complete": False}
+                        )
+                    }
+                    await asyncio.sleep(0.05)
+
+                # Complete chat
+                yield {
+                    "data": json.dumps({"type": "chat", "content": "", "complete": True})
+                }
 
             # 4. Done signal
             yield {"data": json.dumps({"type": "done", "content": "Stream complete"})}
@@ -268,20 +365,27 @@ def run_agent_server(agent_path: Path, port: int):
     sse_app = mcp.sse_app()
 
     # Create combined app with REST endpoints + MCP SSE
+    # Note: Mount must come last as it catches all unmatched routes
     app = Starlette(
         routes=[
-            Route("/agent-info", agent_info),
-            Route("/tools", get_tools),
-            Route("/views", get_views),
-            Route("/views/{view_id}/source", get_view_source),
-            Route("/system-prompt", get_prompt),
-            Route("/download", download_source),
+            Route("/agent-info", agent_info, methods=["GET"]),
+            Route("/tools", get_tools, methods=["GET"]),
+            Route("/views", get_views, methods=["GET"]),
+            Route("/views/{view_id}/source", get_view_source, methods=["GET"]),
+            Route("/skills", get_skills, methods=["GET"]),
+            Route("/system-prompt", get_prompt, methods=["GET"]),
+            Route("/download", download_source, methods=["GET"]),
             Route(
                 "/api/agents/{agent_name}/unified-stream",
                 unified_stream,
                 methods=["POST"],
             ),
-            Mount("/", sse_app),  # Mount MCP SSE at root
+            # Alternative endpoints the playground might call
+            Route("/chat", unified_stream, methods=["POST"]),
+            Route("/stream", unified_stream, methods=["POST"]),
+            Route("/api/chat", unified_stream, methods=["POST"]),
+            Route("/api/stream", unified_stream, methods=["POST"]),
+            Mount("/mcp", sse_app),  # Mount MCP SSE at /mcp to avoid route conflicts
         ]
     )
 
@@ -293,6 +397,18 @@ def run_agent_server(agent_path: Path, port: int):
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Add request logging middleware
+    from starlette.middleware.base import BaseHTTPMiddleware
+
+    class LoggingMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            print(f"[DEV] {request.method} {request.url.path}")
+            response = await call_next(request)
+            print(f"[DEV] Response status: {response.status_code}")
+            return response
+
+    app.add_middleware(LoggingMiddleware)
 
     # Run uvicorn directly with our port
     uvicorn.run(app, host="0.0.0.0", port=port)

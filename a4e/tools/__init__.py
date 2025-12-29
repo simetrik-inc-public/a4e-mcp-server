@@ -3,9 +3,9 @@ A4E MCP Tools - All tools for agent creation and management.
 
 Structure:
 - project/      : Project initialization (initialize_project, get_agent_info)
-- agent_tools/  : Tool management (add_tool, list_tools)
-- views/        : View management (add_view, list_views)
-- skills/       : Skill management (add_skill, list_skills)
+- agent_tools/  : Tool management (add_tool, list_tools, remove_tool)
+- views/        : View management (add_view, list_views, remove_view)
+- skills/       : Skill management (add_skill, list_skills, remove_skill)
 - schemas/      : Schema generation (generate_schemas)
 - validation/   : Validation (validate)
 - dev/          : Development server (dev_start, dev_stop, check_environment)
@@ -16,13 +16,13 @@ Structure:
 from .project import initialize_project, get_agent_info
 
 # Agent tools management
-from .agent_tools import add_tool, list_tools
+from .agent_tools import add_tool, list_tools, remove_tool
 
 # Views management
-from .views import add_view, list_views
+from .views import add_view, list_views, remove_view
 
 # Skills management
-from .skills import add_skill, list_skills
+from .skills import add_skill, list_skills, remove_skill
 
 # Schema generation
 from .schemas import generate_schemas
@@ -43,12 +43,15 @@ __all__ = [
     # Agent tools
     "add_tool",
     "list_tools",
+    "remove_tool",
     # Views
     "add_view",
     "list_views",
+    "remove_view",
     # Skills
     "add_skill",
     "list_skills",
+    "remove_skill",
     # Schemas
     "generate_schemas",
     # Validation
