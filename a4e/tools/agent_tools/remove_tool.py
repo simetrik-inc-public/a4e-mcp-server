@@ -30,15 +30,19 @@ def remove_tool(
     if not tools_dir.exists():
         return {
             "success": False,
-            "error": f"tools/ directory not found at {tools_dir}. Are you in an agent project?",
+            "error": f"tools/ directory not found at {tools_dir}",
+            "fix": "Initialize an agent first with initialize_project() or specify agent_name",
         }
 
     tool_file = tools_dir / f"{tool_name}.py"
 
     if not tool_file.exists():
+        # List available tools for helpful error
+        available = [f.stem for f in tools_dir.glob("*.py") if f.stem != "__init__"]
         return {
             "success": False,
-            "error": f"Tool '{tool_name}' not found at {tool_file}",
+            "error": f"Tool '{tool_name}' not found",
+            "fix": f"Available tools: {', '.join(available) if available else 'none'}",
         }
 
     try:
