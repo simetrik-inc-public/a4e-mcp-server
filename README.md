@@ -30,34 +30,92 @@ The **A4E MCP Server** enables creators to build agents using natural language d
 
 ## Usage in Cursor
 
+### Option 1: MCP Settings UI
+
 1. Go to **Cursor Settings** > **Features** > **MCP**.
 2. Click **+ Add New MCP Server**.
-3. Enter the following:
-
+3. Enter:
    - **Name**: `a4e`
    - **Type**: `command`
    - **Command**: `uv`
-   - **Args**: `run a4e/server.py` (Absolute path recommended)
+   - **Args**: `run --directory /path/to/a4e-mcp-server python -m a4e.server`
 
-   _Example Absolute Path Config:_
+### Option 2: mcp.json Configuration (Recommended)
 
-   ```bash
-   Command: /Users/yourname/.cargo/bin/uv
-   Args: run /absolute/path/to/a4e-mcp-server/a4e/server.py
-   ```
+Edit `~/.cursor/mcp.json` (or `.cursor/mcp.json` in your project):
 
-   _Example mcp.json configuration:_
+```json
+{
+  "mcpServers": {
+    "a4e": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "/absolute/path/to/a4e-mcp-server",
+        "python",
+        "-m",
+        "a4e.server",
+        "--project-dir",
+        "/absolute/path/to/a4e-mcp-server"
+      ]
+    }
+  }
+}
+```
 
-   ```javascript
-   {
-      "mcpServers": {
-         "a4e": {
-            "command": "uv",
-            "args": ["run", "--directory", "${workspaceFolder}", "a4e/server.py"]
-         }
-      }
-   }
-   ```
+**Example for macOS:**
+
+```json
+{
+  "mcpServers": {
+    "a4e": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "/Users/yourname/Documents/a4e-mcp-server",
+        "python",
+        "-m",
+        "a4e.server",
+        "--project-dir",
+        "/Users/yourname/Documents/a4e-mcp-server"
+      ]
+    }
+  }
+}
+```
+
+### Configuration Options
+
+| Option | Description |
+|--------|-------------|
+| `--directory` | Path to the a4e-mcp-server repository |
+| `--project-dir` | Where agents will be created (defaults to current directory) |
+
+After adding, restart Cursor to load the MCP server. You should see **21 tools** available.
+
+## Usage in Claude Desktop
+
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "a4e": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "/absolute/path/to/a4e-mcp-server",
+        "python",
+        "-m",
+        "a4e.server"
+      ]
+    }
+  }
+}
+```
 
 ## Concepts
 
