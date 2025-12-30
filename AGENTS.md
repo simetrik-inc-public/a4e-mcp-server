@@ -13,13 +13,48 @@ A4E MCP Server is a Model Context Protocol (MCP) server toolkit for building, ma
 - Run with project directory: `uv run a4e --project-dir /path/to/project`
 - Test imports: `python -c "from a4e.server import main; print('OK')"`
 
+## CLI Commands
+
+The A4E CLI provides a full command-line interface for agent management:
+
+| Command | Description |
+|---------|-------------|
+| `a4e init` | Initialize a new agent project (interactive wizard) |
+| `a4e add tool` | Add a tool to the agent |
+| `a4e add view` | Add a view to the agent |
+| `a4e add skill` | Add a skill to the agent |
+| `a4e list [tools\|views\|skills\|all]` | List agent components |
+| `a4e remove [tool\|view\|skill]` | Remove a component |
+| `a4e validate` | Validate agent project |
+| `a4e deploy` | Deploy to production |
+| `a4e info` | Display agent information |
+| `a4e dev start` | Start development server |
+
+See [CLI.md](CLI.md) for full command reference.
+
+## Documentation
+
+- [Getting Started](docs/GETTING_STARTED.md) - Quick start tutorial
+- [CLI Reference](CLI.md) - Full CLI documentation
+- [Examples](docs/EXAMPLES.md) - Example agent implementations
+
 ## Project Structure
 
 ```
 a4e/
 ├── core.py                 # MCP instance, shared utilities (get_project_dir, sanitize_input)
 ├── server.py               # Entry point, imports and registers all tools
+├── cli.py                  # CLI entry point (typer app)
 ├── dev_runner.py           # Development server runner
+├── cli_commands/           # CLI command modules
+│   ├── init.py             # a4e init (interactive wizard)
+│   ├── add.py              # a4e add [tool|view|skill]
+│   ├── list.py             # a4e list [tools|views|skills]
+│   ├── remove.py           # a4e remove [tool|view|skill]
+│   ├── validate.py         # a4e validate
+│   ├── deploy.py           # a4e deploy
+│   ├── info.py             # a4e info
+│   └── dev.py              # a4e dev start
 ├── templates/              # Jinja2 templates for code generation
 │   ├── agent.md.j2         # Root AGENTS.md template
 │   ├── agents.md.j2        # Project AGENTS.md template
@@ -39,9 +74,9 @@ a4e/
 │       └── skill.md.j2     # Template for skills/{id}/SKILL.md
 ├── tools/                  # MCP tools organized by section
 │   ├── project/            # initialize_project, get_agent_info
-│   ├── agent_tools/        # add_tool, list_tools
-│   ├── views/              # add_view, list_views, helpers
-│   ├── skills/             # add_skill, list_skills, helpers
+│   ├── agent_tools/        # add_tool, list_tools, remove_tool
+│   ├── views/              # add_view, list_views, remove_view, helpers
+│   ├── skills/             # add_skill, list_skills, remove_skill, helpers
 │   ├── schemas/            # generate_schemas
 │   ├── validation/         # validate
 │   ├── dev/                # dev_start, dev_stop, check_environment

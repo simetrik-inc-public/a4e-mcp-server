@@ -76,7 +76,7 @@ When defining props, use TypeScript types:
 | Integer/Decimal   | `number`           | `count: number`             |
 | Boolean           | `boolean`          | `isActive: boolean`         |
 | Array             | `T[]`              | `items: string[]`           |
-| Object            | `{ key: type }`    | `user: { name: string }`    |
+| Object            | `object`           | `user: object`              |
 | Optional          | `T?` or `T \| undefined` | `subtitle?: string`   |
 | Union             | `"a" \| "b"`       | `status: "active" \| "inactive"` |
 
@@ -104,11 +104,11 @@ Use Tailwind CSS classes for styling:
 ```tsx
 // Good: Tailwind utilities
 <div className="p-4 bg-white rounded-lg shadow-md">
-  <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+  <h2 className="text-lg font-semibold text-gray-900">Title</h2>
 </div>
 
-// Avoid: Inline styles (except for dynamic values)
-<div style={{ padding: '16px' }}>{content}</div>
+// Prefer Tailwind over inline styles
+<div className="p-4">Content</div>
 ```
 
 ## Common Patterns
@@ -158,17 +158,12 @@ interface ChartViewProps {
 }
 
 export default function ChartView({ data }: ChartViewProps) {
-  const max = Math.max(...data.map((d) => d.value));
-  
   return (
     <div className="space-y-2">
       {data.map((item, i) => (
         <div key={i} className="flex items-center gap-4">
           <span className="w-24 text-sm">{item.label}</span>
-          <div 
-            className="h-6 bg-blue-500 rounded"
-            style={{ width: `${(item.value / max) * 100}%` }}
-          />
+          <div className="h-6 bg-blue-500 rounded w-full" />
           <span className="text-sm font-medium">{item.value}</span>
         </div>
       ))}

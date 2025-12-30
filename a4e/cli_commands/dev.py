@@ -75,39 +75,44 @@ def start(
         current_dir = Path(directory)
     project_dir = None
 
-    # Check if the current directory is 'agent-store'
-    if current_dir.name != "agent-store":
-        print("Error: This command must be run from the 'agent-store' directory.")
-        print(f"Current directory: {current_dir}")
-        raise typer.Exit(code=1)
+    # Check if we're inside an agent directory (has agent.py and metadata.json)
+    if (current_dir / "agent.py").exists() and (current_dir / "metadata.json").exists():
+        # We're inside an agent directory - use it directly
+        project_dir = current_dir
+        print(f"Detected agent directory: {project_dir.name}")
+    elif current_dir.name == "agent-store":
+        # We're in agent-store - list available agents and prompt for selection
+        agent_store_path = current_dir
+        available_agents = []
+        if agent_store_path.is_dir():
+            available_agents = [d for d in agent_store_path.iterdir() if d.is_dir()]
 
-    # If we are in agent-store, list available agents and prompt for selection
-    agent_store_path = current_dir
-    available_agents = []
-    if agent_store_path.is_dir():
-        available_agents = [d for d in agent_store_path.iterdir() if d.is_dir()]
-
-    while not project_dir:
-        print("\nSelect an agent to start:")
-        if available_agents:
-            for i, agent in enumerate(available_agents):
-                print(f"  [{i + 1}] {agent.name}")
-            prompt_text = "\nPlease choose an agent"
-        else:
-            print("No agents found in the current 'agent-store' directory.")
-            raise typer.Exit(code=1)
-
-        try:
-            # Check if user entered a number
-            response = typer.prompt(prompt_text, type=str)
-            choice_index = int(response) - 1
-            if 0 <= choice_index < len(available_agents):
-                project_dir = available_agents[choice_index]
+        while not project_dir:
+            print("\nSelect an agent to start:")
+            if available_agents:
+                for i, agent in enumerate(available_agents):
+                    print(f"  [{i + 1}] {agent.name}")
+                prompt_text = "\nPlease choose an agent"
             else:
-                print("Invalid number. Please try again.")
-        except ValueError:
-            # User entered a path string
-            print("Please enter a valid number.")
+                print("No agents found in the current 'agent-store' directory.")
+                raise typer.Exit(code=1)
+
+            try:
+                # Check if user entered a number
+                response = typer.prompt(prompt_text, type=str)
+                choice_index = int(response) - 1
+                if 0 <= choice_index < len(available_agents):
+                    project_dir = available_agents[choice_index]
+                else:
+                    print("Invalid number. Please try again.")
+            except ValueError:
+                # User entered a path string
+                print("Please enter a valid number.")
+    else:
+        print("Error: Run this command from an agent directory or the 'agent-store' directory.")
+        print(f"Current directory: {current_dir}")
+        print("\nTip: cd into your agent folder, or use --directory to specify the path.")
+        raise typer.Exit(code=1)
 
     # Final validation of the selected directory
     if not project_dir or not project_dir.is_dir():
@@ -127,8 +132,8 @@ def start(
         print(f"  Hub URL: {result.get('hub_url')}")
 
         try:
-            pyperclip.copy(str(result.get("public_url")))
-            print("  (Public URL copied to clipboard!)")
+            pyperclip.copy(str(result.get("hub_url")))
+            print("  (Hub URL copied to clipboard!)")
         except pyperclip.PyperclipException:
             print(
                 "  (Could not copy Hub URL to clipboard. Please install xclip/xsel or enable Wayland clipboard for Linux.)"
@@ -137,6 +142,17 @@ def start(
         print("\nInstructions:")
         for instruction in result.get("instructions", []):
             print(f"  {instruction}")
+
+        # Keep the CLI running to maintain the server process
+        print("\n[Server running - Press Ctrl+C to stop]")
+        try:
+            import time
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\nStopping dev server...")
+            DevManager.stop_dev_server(port)
+            print("Dev server stopped.")
     else:
         print(f"Error starting server: {result.get('error')}")
         if result.get("details"):

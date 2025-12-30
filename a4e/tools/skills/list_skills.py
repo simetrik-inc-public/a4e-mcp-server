@@ -33,6 +33,7 @@ def list_skills(agent_name: Optional[str] = None) -> dict:
                     "description": skill_data.get("description", ""),
                     "output_view": skill_data.get("output", {}).get("view", "NONE"),
                     "internal_tools": skill_data.get("internal_tools", []),
+                    "intent_triggers": skill_data.get("intent_triggers", []),
                 })
         except json.JSONDecodeError:
             pass

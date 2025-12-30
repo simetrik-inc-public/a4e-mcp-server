@@ -11,6 +11,7 @@ dependencies = [
     "pyngrok>=7.5.0",
     "pyperclip>=1.11.0",
     "pyyaml>=6.0.3",
+    "rich>=13.0.0",
     "sse-starlette>=3.0.3",
     "typer>=0.20.0",
     "watchdog>=6.0.0",
@@ -21,6 +22,9 @@ a4e = "a4e.cli:app"
 
 [tool.setuptools.package-data]
 "a4e" = ["templates/*"]
+
+[tool.uv]
+package = true
 
 [dependency-groups]
 dev = [

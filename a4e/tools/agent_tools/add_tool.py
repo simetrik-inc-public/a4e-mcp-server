@@ -22,9 +22,11 @@ def add_tool(
     """
     # Validate tool name
     if not tool_name.replace("_", "").isalnum():
+        suggested = tool_name.replace("-", "_").replace(" ", "_").lower()
         return {
             "success": False,
             "error": "Tool name must be alphanumeric with underscores",
+            "fix": f"Try: {suggested}",
         }
 
     project_dir = get_project_dir(agent_name)
@@ -33,12 +35,17 @@ def add_tool(
     if not tools_dir.exists():
         return {
             "success": False,
-            "error": f"tools/ directory not found at {tools_dir}. Are you in an agent project?",
+            "error": f"tools/ directory not found at {tools_dir}",
+            "fix": "Initialize an agent first with initialize_project() or specify agent_name",
         }
 
     tool_file = tools_dir / f"{tool_name}.py"
     if tool_file.exists():
-        return {"success": False, "error": f"Tool '{tool_name}' already exists"}
+        return {
+            "success": False,
+            "error": f"Tool '{tool_name}' already exists",
+            "fix": "Use update_tool() to modify or remove_tool() first",
+        }
 
     try:
         # Prepare parameters with Python types
@@ -53,8 +60,11 @@ def add_tool(
         }
 
         for name, info in parameters.items():
-            # Create a copy to avoid modifying original dict
-            param_info = info.copy()
+            # Handle both simple format {'a': 'number'} and detailed format {'a': {'type': 'number', 'description': '...'}}
+            if isinstance(info, str):
+                param_info = {"type": info}
+            else:
+                param_info = info.copy()
             raw_type = param_info.get("type", "Any")
 
             # Map JSON type to Python type, or use as-is if not in map (allows direct Python types)
