@@ -1,0 +1,99 @@
+# AGENTS.md — {{ display_name }}
+
+> **⚠️ IMPORTANT:** Keep this file updated as you modify the agent. This ensures AI coding agents can work effectively with your agent project.
+
+## Overview
+
+**{{ display_name }}** is an A4E agent in the **{{ category }}** category.
+
+{{ description }}
+
+## Project Structure
+
+```
+{{ agent_id }}/
+├── AGENTS.md           # This file - context for AI coding agents
+├── agent.py            # Agent factory and initialization
+├── metadata.json       # Agent metadata for the marketplace
+├── prompts/
+│   ├── agent.md        # Main agent personality and instructions
+│   ├── reviewer.md     # Review/validation prompts
+│   └── view_renderer.md # View rendering instructions
+├── tools/
+│   ├── AGENTS.md       # Tool-specific instructions
+│   ├── schemas.json    # Auto-generated tool schemas
+│   └── *.py            # Python tool files
+└── views/
+    ├── AGENTS.md       # View-specific instructions
+    ├── schemas.json    # Auto-generated view schemas
+    └── */view.tsx      # React view components
+```
+
+## Quick Reference
+
+| Action                  | Command / Location                        |
+| ----------------------- | ----------------------------------------- |
+| Add a tool              | Create `tools/<tool_name>.py` with @tool  |
+| Add a view              | Create `views/<view_id>/view.tsx`         |
+| Modify personality      | Edit `prompts/agent.md`                   |
+| Update metadata         | Edit `metadata.json`                      |
+| Regenerate schemas      | Run `generate_schemas` MCP tool           |
+| Start dev server        | Run `dev_start` MCP tool                  |
+
+## Code Style
+
+- Python 3.11+ for tools
+- TypeScript/React for views
+- Use type hints for all function parameters
+- Snake_case for Python, camelCase for TypeScript
+- All code and comments in English
+
+## Tools
+
+Tools are Python functions that give the agent capabilities. Each tool:
+- Lives in `tools/<tool_name>.py`
+- Uses the `@tool` decorator from `a4e.sdk`
+- Returns a dictionary with `status` and relevant data
+- Has comprehensive docstrings for schema generation
+
+See `tools/AGENTS.md` for detailed tool development guide.
+
+## Views
+
+Views are React components for rich UI responses. Each view:
+- Lives in `views/<view_id>/view.tsx`
+- Exports a default React component
+- Receives props defined in the component interface
+- Uses the A4E SDK for integrations
+
+See `views/AGENTS.md` for detailed view development guide.
+
+## Schema Generation
+
+Schemas are auto-generated from code:
+- `tools/schemas.json` - Generated from Python tool decorators and docstrings
+- `views/schemas.json` - Generated from TypeScript prop interfaces
+
+**Never edit schema files manually** — they are regenerated automatically.
+
+## Development Workflow
+
+1. **Edit code** — Modify tools, views, or prompts as needed
+2. **Regenerate schemas** — Run `generate_schemas` after tool/view changes
+3. **Test locally** — Use `dev_start` to run the agent locally
+4. **Deploy** — Use `deploy` to publish to A4E Hub
+
+## Security Notes
+
+- Never hardcode API keys or secrets in code
+- Use environment variables for sensitive configuration
+- Validate all user inputs in tools
+- Sanitize data before rendering in views
+
+## Category: {{ category }}
+
+This agent is designed for {{ category }} use cases. Keep this focus in mind when:
+- Adding new tools (should relate to {{ category }})
+- Designing views (should serve {{ category }} needs)
+- Writing prompts (should maintain {{ category }} expertise)
+

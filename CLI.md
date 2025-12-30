@@ -35,3 +35,16 @@ python -m a4e.cli dev start --directory file-store/agent-store
    ```console
    taskkill /PID 12345 /T /F
    ```
+
+2. try to launch just the dev server
+
+   ```bash
+   python a4e/dev_runner.py --agent-path file-store/agent-store/{your-agent-id}
+   ```
+
+   this command should launch an uvicorn services that runs on port 5000
+
+3. try to manually run ngrok once the server is running
+   ```bash
+   ngrok http 5000
+   ```
