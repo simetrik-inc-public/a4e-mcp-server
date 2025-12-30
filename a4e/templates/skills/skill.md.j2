@@ -69,8 +69,20 @@ view_params = {
 {% endif %}
 view_params = {
 {% for prop_name, prop_info in view_props.items() %}
-    "{{ prop_name }}": None,  # TODO: Set from {% if internal_tools %}tool results{% else %}context{% endif %}
-
+{% set prop_type = prop_info.get('type', 'string') if prop_info is mapping else prop_info %}
+{% if prop_type == 'string' %}
+    "{{ prop_name }}": "{{ prop_info.get('default', 'Sample ' + prop_name) if prop_info is mapping else 'Sample ' + prop_name }}",
+{% elif prop_type == 'number' %}
+    "{{ prop_name }}": {{ prop_info.get('default', 0) if prop_info is mapping else 0 }},
+{% elif prop_type == 'boolean' %}
+    "{{ prop_name }}": {{ prop_info.get('default', 'False') if prop_info is mapping else 'False' }},
+{% elif prop_type == 'array' %}
+    "{{ prop_name }}": [],
+{% elif prop_type == 'object' %}
+    "{{ prop_name }}": {},
+{% else %}
+    "{{ prop_name }}": None,
+{% endif %}
 {% endfor %}
 }
 ```
