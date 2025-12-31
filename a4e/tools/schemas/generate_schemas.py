@@ -34,6 +34,8 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
     if not spec or not spec.loader:
         return {"success": False, "error": "Failed to load schema_generator module"}
     schema_gen_module = importlib.util.module_from_spec(spec)
+    # Add module to sys.modules before executing to enable imports
+    sys.modules[spec.name] = schema_gen_module
     spec.loader.exec_module(schema_gen_module)
     generate_schema = schema_gen_module.generate_schema
 
@@ -87,8 +89,15 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
 
         # Mock a4e SDK to avoid backend dependency hell (psycopg2, etc.)
         # We only need the @tool decorator to mark functions
-        if "a4e" not in sys.modules:
-            a4e_module = ModuleType("a4e")
+        if "a4e.sdk" not in sys.modules:
+            # a4e module might already exist (we're running from within it)
+            # but a4e.sdk might not be available
+            if "a4e" not in sys.modules:
+                a4e_module = ModuleType("a4e")
+                sys.modules["a4e"] = a4e_module
+            else:
+                a4e_module = sys.modules["a4e"]
+
             a4e_sdk_module = ModuleType("a4e.sdk")
 
             def mock_tool(func):
@@ -97,8 +106,6 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
 
             a4e_sdk_module.tool = mock_tool
             a4e_module.sdk = a4e_sdk_module
-
-            sys.modules["a4e"] = a4e_module
             sys.modules["a4e.sdk"] = a4e_sdk_module
 
         for tool_file in tools_dir.glob("*.py"):
@@ -110,6 +117,8 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
                 spec = importlib.util.spec_from_file_location(tool_file.stem, tool_file)
                 if spec and spec.loader:
                     module = importlib.util.module_from_spec(spec)
+                    # Add module to sys.modules before executing to enable imports
+                    sys.modules[spec.name] = module
                     spec.loader.exec_module(module)
 
                     # Find @tool decorated functions or functions matching filename convention
@@ -136,7 +145,7 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
             schema_file = tools_dir / "schemas.json"
             if schema_file.exists() and force:
                 print(f"Overwriting {schema_file}")
-            schema_file.write_text(json.dumps(tool_schemas, indent=2))
+            schema_file.write_text(json.dumps(tool_schemas, indent=2), encoding='utf-8')
             results["tools"]["status"] = "error" if has_errors else "success"
         except Exception as e:
             error_msg = f"Error writing schemas.json: {e}"
@@ -160,7 +169,7 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
                 continue
 
             try:
-                content = view_file.read_text()
+                content = view_file.read_text(encoding='utf-8')
 
                 # Simple regex to find interface Props
                 props_match = re.search(r"interface\s+(\w+Props)\s*{([^}]+)}", content)
@@ -211,7 +220,7 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
                 view_schema_file = view_dir / "view.schema.json"
                 if view_schema_file.exists() and force:
                     print(f"Overwriting {view_schema_file}")
-                view_schema_file.write_text(json.dumps(schema, indent=2))
+                view_schema_file.write_text(json.dumps(schema, indent=2), encoding='utf-8')
 
                 # Add to aggregated dict
                 # Backend expects: { "view_id": { "id": "...", "description": "...", "params": {...} } }
@@ -234,7 +243,7 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
             aggregated_schema_file = views_dir / "schemas.json"
             if aggregated_schema_file.exists() and force:
                 print(f"Overwriting {aggregated_schema_file}")
-            aggregated_schema_file.write_text(json.dumps(aggregated_views, indent=2))
+            aggregated_schema_file.write_text(json.dumps(aggregated_views, indent=2), encoding='utf-8')
         except Exception as e:
             error_msg = f"Error writing views/schemas.json: {e}"
             print(error_msg)

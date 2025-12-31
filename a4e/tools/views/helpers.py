@@ -46,7 +46,7 @@ def create_view(
         code = template.render(
             view_name=view_name, description=description, props=props
         )
-        (view_dir / "view.tsx").write_text(code)
+        (view_dir / "view.tsx").write_text(code, encoding='utf-8')
 
         # Create view.schema.json (required by A4E View Renderer)
         schema_properties = {}
@@ -77,7 +77,7 @@ def create_view(
             },
         }
         (view_dir / "view.schema.json").write_text(
-            json.dumps(view_schema, indent=2)
+            json.dumps(view_schema, indent=2), encoding='utf-8'
         )
 
         return {
