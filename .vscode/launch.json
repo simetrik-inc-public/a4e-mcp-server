@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug(cli): a4e init (planner)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "a4e.cli",
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "args": [
+                "init",
+                "--name", "planner",
+                "--display-name", "Planner",
+                "--description", "A planner agent that helps you plan your day.",
+                "-c", "Productivity",
+                "--template", "full",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        }
+    ]
+}

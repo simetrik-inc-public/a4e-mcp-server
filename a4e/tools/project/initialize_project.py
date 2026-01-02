@@ -71,7 +71,7 @@ def initialize_project(
         # Generate agent.py
         agent_template = jinja_env.get_template("agent.py.j2")
         agent_code = agent_template.render(agent_id=safe_name)
-        (project_dir / "agent.py").write_text(agent_code)
+        (project_dir / "agent.py").write_text(agent_code, encoding='utf-8')
 
         # Generate metadata.json
         metadata_template = jinja_env.get_template("metadata.json.j2")
@@ -84,7 +84,7 @@ def initialize_project(
             description=safe_description,
             category=category,
         )
-        (project_dir / "metadata.json").write_text(metadata)
+        (project_dir / "metadata.json").write_text(metadata, encoding='utf-8')
 
         # Generate prompts/agent.md
         prompt_template = jinja_env.get_template("prompt.md.j2")
@@ -93,9 +93,9 @@ def initialize_project(
             category=category,
             description=safe_description,
         )
-        (project_dir / "prompts/agent.md").write_text(prompt)
-        (project_dir / "prompts/reviewer.md").write_text("")
-        (project_dir / "prompts/view_renderer.md").write_text("")
+        (project_dir / "prompts/agent.md").write_text(prompt, encoding='utf-8')
+        (project_dir / "prompts/reviewer.md").write_text("", encoding='utf-8')
+        (project_dir / "prompts/view_renderer.md").write_text("", encoding='utf-8')
 
         # Generate AGENTS.md (root context file)
         agents_template = jinja_env.get_template("agents.md.j2")
@@ -105,22 +105,22 @@ def initialize_project(
             category=category,
             description=safe_description,
         )
-        (project_dir / "AGENTS.md").write_text(agents_md)
+        (project_dir / "AGENTS.md").write_text(agents_md, encoding='utf-8')
 
         # Generate subdirectory AGENTS.md files for AI coding agents
         tools_agents_template = jinja_env.get_template("tools/agent.md.j2")
-        (project_dir / "tools" / "AGENTS.md").write_text(tools_agents_template.render())
+        (project_dir / "tools" / "AGENTS.md").write_text(tools_agents_template.render(), encoding='utf-8')
 
         views_agents_template = jinja_env.get_template("views/agent.md.j2")
-        (project_dir / "views" / "AGENTS.md").write_text(views_agents_template.render())
+        (project_dir / "views" / "AGENTS.md").write_text(views_agents_template.render(), encoding='utf-8')
 
         prompts_agents_template = jinja_env.get_template("prompts/agent.md.j2")
-        (project_dir / "prompts" / "AGENTS.md").write_text(prompts_agents_template.render())
+        (project_dir / "prompts" / "AGENTS.md").write_text(prompts_agents_template.render(), encoding='utf-8')
 
         # Generate skills/AGENTS.md (skills documentation)
         skills_agents_template = jinja_env.get_template("skills/agents.md.j2")
         skills_agents_md = skills_agents_template.render(agent_id=safe_name)
-        (project_dir / "skills/AGENTS.md").write_text(skills_agents_md)
+        (project_dir / "skills/AGENTS.md").write_text(skills_agents_md, encoding='utf-8')
 
         # Create welcome view (MANDATORY)
         from ..views.helpers import create_view
@@ -156,7 +156,7 @@ def example_tool(
         "results": []
     }
 '''
-            (project_dir / "tools" / "example_tool.py").write_text(example_tool_code)
+            (project_dir / "tools" / "example_tool.py").write_text(example_tool_code, encoding='utf-8')
 
         if template in ["with-views", "full"]:
             # Create example view (in addition to welcome)

@@ -69,7 +69,7 @@ def create_skill(
             requires_auth=requires_auth,
             view_props=view_props or {},
         )
-        (skill_dir / "SKILL.md").write_text(skill_md)
+        (skill_dir / "SKILL.md").write_text(skill_md, encoding='utf-8')
 
         # Update skills/schemas.json
         _update_skills_schema(
@@ -110,7 +110,7 @@ def _update_skills_schema(
     # Load existing schemas or create empty dict
     if schema_file.exists():
         try:
-            schemas = json.loads(schema_file.read_text())
+            schemas = json.loads(schema_file.read_text(encoding='utf-8'))
         except json.JSONDecodeError:
             schemas = {}
     else:
@@ -133,5 +133,5 @@ def _update_skills_schema(
     }
 
     # Write updated schemas
-    schema_file.write_text(json.dumps(schemas, indent=2))
+    schema_file.write_text(json.dumps(schemas, indent=2), encoding='utf-8')
 

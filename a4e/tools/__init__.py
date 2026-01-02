@@ -13,7 +13,7 @@ Structure:
 """
 
 # Project tools
-from .project import initialize_project, get_agent_info
+from .project import initialize_project, get_agent_info, get_instructions
 
 # Agent tools management
 from .agent_tools import add_tool, list_tools, remove_tool, update_tool
@@ -40,6 +40,7 @@ __all__ = [
     # Project
     "initialize_project",
     "get_agent_info",
+    "get_instructions",
     # Agent tools
     "add_tool",
     "list_tools",

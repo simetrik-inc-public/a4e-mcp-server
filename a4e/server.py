@@ -16,6 +16,7 @@ from .tools import (
     # Project
     initialize_project,
     get_agent_info,
+    get_instructions,
     # Agent tools
     add_tool,
     list_tools,
