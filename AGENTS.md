@@ -37,6 +37,87 @@ See [CLI.md](CLI.md) for full command reference.
 - [Getting Started](docs/GETTING_STARTED.md) - Quick start tutorial
 - [CLI Reference](CLI.md) - Full CLI documentation
 - [Examples](docs/EXAMPLES.md) - Example agent implementations
+- [View System](docs/VIEW_SYSTEM.md) - How views work in production (#VIEW tags)
+
+## A4E Main Application Compatibility
+
+> **⚠️ CRITICAL:** Tools and schemas must follow specific patterns to work with the A4E main application.
+
+### Tool Signature Pattern
+
+All tools MUST use the `params: Dict[str, Any]` pattern:
+
+```python
+from typing import Dict, Any
+
+def my_tool(params: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Tool description
+
+    Args:
+        params: Dictionary containing:
+            - param1: Description (required)
+            - param2: Description (optional)
+    """
+    param1 = params.get("param1")
+    param2 = params.get("param2")
+    
+    return {"status": "success", "result": ...}
+```
+
+**Why?** The A4E backend wraps tools with `_wrap_tool_with_context()` which merges user context into the params dict.
+
+### Schema Format
+
+`tools/schemas.json` MUST be a dictionary (not an array):
+
+```json
+{
+  "tool_name": {
+    "function": {
+      "name": "tool_name",
+      "description": "...",
+      "parameters": {
+        "type": "object",
+        "properties": {...},
+        "required": [...]
+      }
+    },
+    "returns": {
+      "type": "object",
+      "properties": {...}
+    }
+  }
+}
+```
+
+### Support Files (db.py, models.py)
+
+Support files must include exec() context compatibility:
+
+```python
+# At the top of the file
+if '__name__' not in dir():
+    __name__ = "module_name"
+
+import sys
+import os
+
+if '__file__' in dir():
+    _dir = os.path.dirname(globals()['__file__'])
+    if _dir not in sys.path:
+        sys.path.insert(0, _dir)
+```
+
+### Agent Prompt Best Practices
+
+Include a language policy in `prompts/agent.md`:
+
+```markdown
+## IMPORTANT: Language Policy
+
+**ALWAYS respond in English only.** Even if the user writes in another language, respond in English.
+```
 
 ## Project Structure
 

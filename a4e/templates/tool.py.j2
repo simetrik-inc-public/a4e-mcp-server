@@ -1,22 +1,60 @@
-from a4e.sdk import tool
-from typing import Literal, List, Optional, Any
+"""
+{{ tool_name | replace('_', ' ') | title }} Tool
 
-@tool
-def {{ tool_name }}(
-{% for param_name, param_info in parameters.items() %}
-    {{ param_name }}: {{ param_info.type }}{% if not loop.last %},{% endif %}
-{% endfor %}
-) -> dict:
+{{ description }}
+"""
+from typing import Dict, Any, Optional
+import sys
+import os
+
+
+def _ensure_imports():
+    """
+    Add tools directory to sys.path if not already there.
+    This enables imports of support files (db.py, models.py, etc.) when exec()'d.
+    """
+    if '__file__' in globals():
+        tools_dir = os.path.dirname(globals()['__file__'])
+        if tools_dir not in sys.path:
+            sys.path.insert(0, tools_dir)
+
+
+def {{ tool_name }}(params: Dict[str, Any]) -> Dict[str, Any]:
     """
     {{ description }}
 
     Args:
+        params: Dictionary containing:
 {% for param_name, param_info in parameters.items() %}
-        {{ param_name }}: {{ param_info.description }}
+            - {{ param_name }}: {{ param_info.description if param_info.description else param_info.type }}{% if not param_info.is_required %} (optional){% endif %}
+
 {% endfor %}
+    Returns:
+        Dict with operation result
     """
-    # TODO: Implement {{ tool_name }}
+    # Extract parameters from params dict
+{% for param_name, param_info in parameters.items() %}
+{% if param_info.is_required %}
+    {{ param_name }} = params.get("{{ param_name }}")
+{% else %}
+    {{ param_name }} = params.get("{{ param_name }}")
+{% endif %}
+{% endfor %}
+
+    # Ensure imports work in exec() context
+    _ensure_imports()
+
+    # TODO: Implement {{ tool_name }} logic here
+    # Example: Import support modules if needed
+    # try:
+    #     import db
+    # except ImportError:
+    #     return {"status": "error", "message": "Database module not available"}
+
     return {
         "status": "success",
-        "message": "Tool {{ tool_name }} executed successfully"
+        "message": "{{ tool_name | replace('_', ' ') | title }} executed successfully",
+{% for param_name, param_info in parameters.items() %}
+        "{{ param_name }}": {{ param_name }},
+{% endfor %}
     }

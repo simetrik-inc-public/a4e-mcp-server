@@ -1,5 +1,8 @@
 """
 Add tool tool.
+
+Creates tools with the params: Dict[str, Any] pattern required by the A4E main application.
+Also includes exec() compatibility helpers for proper module loading.
 """
 
 from typing import Optional
@@ -12,13 +15,19 @@ def add_tool(
     tool_name: str, description: str, parameters: dict, agent_name: Optional[str] = None
 ) -> dict:
     """
-    Add a new tool with @tool decorator
+    Add a new tool with params: Dict[str, Any] signature (A4E compatible)
 
     Args:
         tool_name: Name of the tool (snake_case)
         description: What the tool does
         parameters: Dictionary of parameters with types and descriptions
         agent_name: Optional agent ID if not in agent directory
+    
+    The generated tool will use the params dict pattern:
+        def tool_name(params: Dict[str, Any]) -> Dict[str, Any]
+    
+    This is required for compatibility with the A4E main application's
+    exec() context and tool wrapping system.
     """
     # Validate tool name
     if not tool_name.replace("_", "").isalnum():

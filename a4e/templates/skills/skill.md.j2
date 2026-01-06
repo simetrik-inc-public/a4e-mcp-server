@@ -16,27 +16,39 @@ This skill is triggered by phrases like:
 {% if internal_tools %}
 ### 1. Call Internal Tools
 
+**IMPORTANT**: All tools use the `params: Dict[str, Any]` pattern. Pass parameters as a dictionary:
+
 {% for tool in internal_tools %}
 ```python
+# Call {{ tool }} with required parameters
 {{ tool }}_result = {{ tool }}({
-    # Add required parameters here
+    # Add required parameters here as key-value pairs
+    # Example: "param_name": value
 })
 ```
 {% endfor %}
 
 ### 2. Prepare View Parameters
+
+Extract data from tool results and build the view params object:
+
 {% else %}
 ### 1. Prepare View Parameters
+
+This skill has no internal tools. Build the view params directly:
+
 {% endif %}
-
 {% if view_props %}
-Extract data and build the view params object:
-
 ```python
 view_params = {
 {% for prop_name, prop_info in view_props.items() %}
-    "{{ prop_name }}": ...,  # {{ prop_info.get('type', 'any') }}{% if prop_info.get('description') %} - {{ prop_info.get('description') }}{% endif %}
+{% set prop_type = prop_info.get('type', 'string') if prop_info is mapping else prop_info %}
+{% if internal_tools %}
+    "{{ prop_name }}": {{ internal_tools[0] }}_result.get("{{ prop_name }}"),  # {{ prop_type }}
+{% else %}
+    "{{ prop_name }}": ...,  # {{ prop_type }}{% if prop_info is mapping and prop_info.get('description') %} - {{ prop_info.get('description') }}{% endif %}
 
+{% endif %}
 {% endfor %}
 }
 ```
@@ -46,7 +58,7 @@ view_params = {
 | Property | Type | Description |
 |----------|------|-------------|
 {% for prop_name, prop_info in view_props.items() %}
-| `{{ prop_name }}` | {{ prop_info.get('type', 'any') }} | {{ prop_info.get('description', '-') }} |
+| `{{ prop_name }}` | {{ prop_info.get('type', 'any') if prop_info is mapping else prop_info }} | {{ prop_info.get('description', '-') if prop_info is mapping else '-' }} |
 {% endfor %}
 {% else %}
 ```python
@@ -56,26 +68,28 @@ view_params = {
 ```
 {% endif %}
 
-## Expected Output
+## Example Implementation
 
 ```python
 {% if internal_tools %}
-# Step 1: Call tools to get data
+# Step 1: Call the required tools with params dict pattern
 {% for tool in internal_tools %}
-{{ tool }}_data = {{ tool }}({})
+{{ tool }}_data = {{ tool }}({
+    # Add your parameters here
+})
 {% endfor %}
 
-# Step 2: Process and prepare view params
+# Step 2: Extract data and build view_params
 {% endif %}
 view_params = {
 {% for prop_name, prop_info in view_props.items() %}
 {% set prop_type = prop_info.get('type', 'string') if prop_info is mapping else prop_info %}
 {% if prop_type == 'string' %}
-    "{{ prop_name }}": "{{ prop_info.get('default', 'Sample ' + prop_name) if prop_info is mapping else 'Sample ' + prop_name }}",
-{% elif prop_type == 'number' %}
-    "{{ prop_name }}": {{ prop_info.get('default', 0) if prop_info is mapping else 0 }},
+    "{{ prop_name }}": "Sample {{ prop_name }}",
+{% elif prop_type == 'number' or prop_type == 'integer' %}
+    "{{ prop_name }}": 0,
 {% elif prop_type == 'boolean' %}
-    "{{ prop_name }}": {{ prop_info.get('default', 'False') if prop_info is mapping else 'False' }},
+    "{{ prop_name }}": False,
 {% elif prop_type == 'array' %}
     "{{ prop_name }}": [],
 {% elif prop_type == 'object' %}
@@ -89,17 +103,18 @@ view_params = {
 
 ## Parameter Extraction Rules
 
-Map user intents to parameters:
+When extracting parameters from the user's message:
 
-| User Says | Extracted Parameters |
-|-----------|---------------------|
+| User Intent | Parameters to Extract |
+|-------------|----------------------|
 {% for trigger in intent_triggers[:3] %}
-| "{{ trigger }}" | `{}` |
+| "{{ trigger }}" | Analyze message for relevant values |
 {% endfor %}
 
-## Notes
+## Important Notes
 
 - **Output view:** `{{ output_view }}`
-{% if requires_auth %}- **Authentication:** Required{% else %}- **Authentication:** Not required{% endif %}
-{% if internal_tools %}- **Dependencies:** {{ internal_tools | join(', ') }}{% endif %}
-
+{% if requires_auth %}- **Authentication:** Required - ensure user is authenticated{% else %}- **Authentication:** Not required{% endif %}
+{% if internal_tools %}- **Tool dependencies:** {{ internal_tools | join(', ') }}{% endif %}
+- **Tool calling pattern:** Always use `tool_name({"param": value})` format
+- **Error handling:** Check tool results for `status: "success"` before using data

@@ -136,7 +136,30 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
             schema_file = tools_dir / "schemas.json"
             if schema_file.exists() and force:
                 print(f"Overwriting {schema_file}")
-            schema_file.write_text(json.dumps(tool_schemas, indent=2))
+            
+            # Convert list to dictionary format with tool names as keys
+            # This is the format expected by the A4E main application
+            schemas_dict = {}
+            for schema in tool_schemas:
+                tool_name = schema.get("function", {}).get("name")
+                if not tool_name:
+                    # Fallback for legacy format
+                    tool_name = schema.get("name", "unknown")
+                    # Convert legacy format to new format
+                    schema = {
+                        "function": {
+                            "name": tool_name,
+                            "description": schema.get("description", ""),
+                            "parameters": schema.get("inputSchema", schema.get("parameters", {}))
+                        },
+                        "returns": schema.get("returns", {
+                            "type": "object",
+                            "properties": {"status": {"type": "string"}}
+                        })
+                    }
+                schemas_dict[tool_name] = schema
+            
+            schema_file.write_text(json.dumps(schemas_dict, indent=2))
             results["tools"]["status"] = "error" if has_errors else "success"
         except Exception as e:
             error_msg = f"Error writing schemas.json: {e}"

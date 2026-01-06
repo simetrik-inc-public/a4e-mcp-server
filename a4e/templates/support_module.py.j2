@@ -1,0 +1,84 @@
+"""
+{{ module_name | replace('_', ' ') | title }} - Support Module for {{ agent_name }}
+
+{{ description }}
+
+This module is designed to work in both:
+1. Direct Python execution
+2. exec() context (when loaded by A4E main application)
+"""
+# Ensure __name__ is defined for exec() context compatibility
+if '__name__' not in dir():
+    __name__ = "{{ module_name }}"
+
+import sys
+import os
+from typing import Dict, Any, Optional, List
+
+
+def _ensure_path():
+    """Add this directory to sys.path if not already there."""
+    if '__file__' in dir():
+        module_dir = os.path.dirname(globals()['__file__'])
+        if module_dir not in sys.path:
+            sys.path.insert(0, module_dir)
+
+
+# Ensure path is set up
+_ensure_path()
+
+
+# =============================================================================
+# {{ module_name | upper }} IMPLEMENTATION
+# =============================================================================
+
+# TODO: Implement your {{ module_name }} logic here
+# Example functions:
+
+def get_data(key: str) -> Optional[Dict[str, Any]]:
+    """
+    Get data by key.
+    
+    Args:
+        key: The data key to retrieve
+        
+    Returns:
+        Data dictionary or None if not found
+    """
+    # TODO: Implement data retrieval
+    return {"key": key, "value": "sample"}
+
+
+def save_data(key: str, data: Dict[str, Any]) -> bool:
+    """
+    Save data with key.
+    
+    Args:
+        key: The data key
+        data: The data to save
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    # TODO: Implement data storage
+    return True
+
+
+# =============================================================================
+# MODULE SELF-TEST
+# =============================================================================
+
+# Only run when executed directly (not when exec'd by the main app)
+if globals().get('__name__') == "__main__":
+    print(f"Testing {__name__} module...")
+    
+    # Test get_data
+    result = get_data("test_key")
+    print(f"get_data result: {result}")
+    
+    # Test save_data
+    success = save_data("test_key", {"test": "data"})
+    print(f"save_data success: {success}")
+    
+    print("All tests passed!")
+
