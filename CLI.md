@@ -348,12 +348,12 @@ a4e dev start [OPTIONS]
 
 | Option | Description |
 |--------|-------------|
-| `--directory` | Directory containing agent-store |
+| `--directory` | Agent directory path |
 | `--port` | Local port (default: 5000) |
 | `--auth-token` | Ngrok auth token |
 
 ```bash
-a4e dev start --directory file-store/agent-store
+a4e dev start --directory my-agent
 ```
 
 ---

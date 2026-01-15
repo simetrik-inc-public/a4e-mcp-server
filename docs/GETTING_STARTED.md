@@ -1,109 +1,126 @@
-# Getting Started with A4E Agent Creator
+# Getting Started with A4E
 
-This guide will walk you through creating your first conversational AI agent in under 5 minutes.
+Create your first conversational AI agent in under 5 minutes.
 
 ## Prerequisites
 
-- Python 3.11+
-- [uv](https://docs.astral.sh/uv/) package manager (recommended) or pip
+### Python 3.10+
+
+```bash
+# Check your version
+python --version
+
+# Install if needed (macOS)
+brew install python@3.10
+
+# Install if needed (Ubuntu/Debian)
+sudo apt update && sudo apt install python3.10
+```
+
+### ngrok Account (for dev server)
+
+The development server uses ngrok to create public tunnels.
+
+1. Sign up: https://ngrok.com/signup
+2. Get your authtoken: https://dashboard.ngrok.com/get-started/your-authtoken
+3. Configure:
+
+```bash
+# Option A: Install ngrok CLI
+brew install ngrok/ngrok/ngrok  # macOS
+ngrok config add-authtoken YOUR_TOKEN
+
+# Option B: Environment variable
+export NGROK_AUTHTOKEN=YOUR_TOKEN
+```
 
 ## Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/a4e-mcp-server.git
-cd a4e-mcp-server
-
-# Install dependencies
-uv sync
+pip install a4e
 ```
 
-## Quick Start: Create Your First Agent
-
-### Step 1: Initialize a New Agent
-
-Use the interactive wizard to create a new agent:
+Verify:
 
 ```bash
-uv run a4e init
+a4e --version
 ```
 
-You'll be prompted for:
-- **Agent name**: lowercase with hyphens (e.g., `nutrition-coach`)
-- **Display name**: human-readable name (e.g., `Nutrition Coach`)
-- **Description**: what your agent does
-- **Category**: choose from available categories
-- **Template**: basic, with-tools, with-views, or full
+## Create Your First Agent
 
-**Non-interactive mode:**
+### Step 1: Initialize
+
 ```bash
-uv run a4e init --name nutrition-coach --display-name "Nutrition Coach" \
-  --description "Personalized nutrition guidance" --category "Fitness & Health" \
+# Interactive mode (recommended)
+a4e init
+
+# Or non-interactive
+a4e init --name nutrition-coach \
+  --display-name "Nutrition Coach" \
+  --description "Personalized nutrition guidance" \
+  --category "Fitness & Health" \
   --template basic --yes
 ```
 
-### Step 2: Navigate to Your Agent
+### Step 2: Explore the structure
 
 ```bash
 cd nutrition-coach
 ```
 
-Your agent structure:
 ```
 nutrition-coach/
-├── agent.py              # Agent factory
+├── agent.py              # Agent configuration
 ├── metadata.json         # Marketplace metadata
-├── AGENTS.md             # AI coding guide
+├── AGENTS.md             # AI coding assistant guide
 ├── prompts/
-│   ├── agent.md          # Main personality
-│   └── ...
+│   └── agent.md          # System prompt / personality
 ├── tools/
 │   └── schemas.json      # Tool definitions
 ├── views/
-│   ├── welcome/          # Mandatory welcome view
-│   └── schemas.json
+│   ├── welcome/          # Default welcome view
+│   └── schemas.json      # View definitions
 └── skills/
     ├── show_welcome/     # Default skill
-    └── schemas.json
+    └── schemas.json      # Skill definitions
 ```
 
 ### Step 3: Add a Tool
 
-Tools are Python functions your agent can call. Add one interactively:
-
 ```bash
-uv run a4e add tool
-```
+# Interactive
+a4e add tool
 
-Or with options:
-```bash
-uv run a4e add tool calculate_bmi -d "Calculate Body Mass Index"
+# Or with options
+a4e add tool calculate_bmi -d "Calculate Body Mass Index"
 ```
 
 This creates `tools/calculate_bmi.py`:
-```python
-from a4e.sdk import tool
-from typing import Optional
 
-@tool
-def calculate_bmi(
-    weight_kg: float,
-    height_m: float,
-) -> dict:
-    """Calculate Body Mass Index"""
-    bmi = weight_kg / (height_m ** 2)
-    return {"bmi": round(bmi, 1), "status": "success"}
+```python
+from typing import Dict, Any
+
+def calculate_bmi(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Calculate Body Mass Index."""
+    weight = params.get("weight_kg")
+    height = params.get("height_m")
+    
+    bmi = weight / (height ** 2)
+    
+    return {
+        "bmi": round(bmi, 1),
+        "status": "success"
+    }
 ```
 
 ### Step 4: Add a View
 
-Views are React components that render your agent's responses:
-
 ```bash
-uv run a4e add view bmi-result -d "Display BMI calculation result"
+a4e add view bmi-result -d "Display BMI calculation result"
 ```
 
 This creates `views/bmi-result/view.tsx`:
+
 ```tsx
 "use client";
 import React from "react";
@@ -113,12 +130,11 @@ interface BmiResultProps {
   category: string;
 }
 
-export default function BmiResultView(props: BmiResultProps) {
-  const { bmi, category } = props;
+export default function BmiResultView({ bmi, category }: BmiResultProps) {
   return (
     <div className="p-6">
-      <h2>Your BMI: {bmi}</h2>
-      <p>Category: {category}</p>
+      <h2 className="text-2xl font-bold">Your BMI: {bmi}</h2>
+      <p className="text-gray-600">Category: {category}</p>
     </div>
   );
 }
@@ -129,96 +145,149 @@ export default function BmiResultView(props: BmiResultProps) {
 Skills connect user intents to tools and views:
 
 ```bash
-uv run a4e add skill calculate_bmi_skill \
+a4e add skill show_bmi \
   --name "Calculate BMI" \
   --view bmi-result \
-  --triggers "calculate bmi,check my bmi,what is my bmi"
+  --triggers "calculate bmi,check my bmi,what is my bmi" \
+  --tools calculate_bmi
 ```
 
-### Step 6: Validate Your Agent
-
-Check for errors before testing:
+### Step 6: Validate
 
 ```bash
-uv run a4e validate
+a4e validate
 ```
 
-### Step 7: Start the Development Server
+Expected output:
+
+```
+Validating agent: nutrition-coach
+✓ Required files present
+✓ Python syntax valid
+✓ Type hints present
+✓ Schemas generated
+✓ Skills valid
+
+Validation passed!
+```
+
+### Step 7: Start Dev Server
 
 ```bash
-uv run a4e dev start
+a4e dev start
 ```
 
-This starts a local server with ngrok tunnel for testing.
+This starts:
+- Local server at `http://localhost:5000`
+- ngrok tunnel for external access
+- File watcher for hot-reload
+
+## Using with AI Assistant (MCP)
+
+Instead of CLI commands, you can use A4E directly from your AI assistant.
+
+### Setup
+
+```bash
+# Configure for your IDE
+a4e mcp setup cursor       # Cursor
+a4e mcp setup claude-code  # Claude Code
+a4e mcp setup antigravity  # Antigravity
+
+# Restart your IDE
+```
+
+### Usage
+
+Ask your AI assistant:
+
+- "Create an agent called fitness-tracker"
+- "Add a tool to log workouts"
+- "Add a view to show progress charts"
+- "Start the development server"
+- "Validate and deploy the agent"
+
+## Common Workflows
+
+### List components
+
+```bash
+a4e list all
+a4e list tools
+a4e list views
+a4e list skills
+```
+
+### Get agent info
+
+```bash
+a4e info
+a4e info --json
+```
+
+### Remove components
+
+```bash
+a4e remove tool calculate_bmi
+a4e remove view bmi-result
+a4e remove skill show_bmi
+```
+
+### Deploy to production
+
+```bash
+a4e deploy
+```
+
+## Troubleshooting
+
+### Command not found
+
+```bash
+# Ensure pip scripts are in PATH
+export PATH="$HOME/.local/bin:$PATH"
+
+# Or use pipx
+pipx install a4e
+```
+
+### ngrok errors
+
+```bash
+# Verify ngrok is configured
+ngrok config check
+
+# Add token if missing
+ngrok config add-authtoken YOUR_TOKEN
+
+# Or pass directly
+a4e dev start --auth-token YOUR_TOKEN
+```
+
+### Port in use
+
+```bash
+# Check what's using port 5000
+lsof -i :5000
+
+# Use different port
+a4e dev start --port 5001
+```
+
+### Validation errors
+
+```bash
+# Run with verbose output
+a4e validate --agent ./path/to/agent
+
+# Common fixes:
+# - Missing files: Re-run a4e init
+# - Type hints: Add return types to functions
+# - Schema errors: Re-run a4e add tool/view
+```
 
 ## Next Steps
 
 - [CLI Reference](../CLI.md) - Full command documentation
 - [Examples](./EXAMPLES.md) - Sample agent implementations
-- [AGENTS.md](../AGENTS.md) - Project architecture reference
-
-## Common Workflows
-
-### List Everything
-```bash
-uv run a4e list all
-```
-
-### Check Agent Info
-```bash
-uv run a4e info
-```
-
-### Remove a Component
-```bash
-uv run a4e remove tool calculate_bmi
-uv run a4e remove view bmi-result
-uv run a4e remove skill calculate_bmi_skill
-```
-
-### Deploy to Production
-```bash
-uv run a4e deploy
-```
-
-## Using with MCP (IDE Integration)
-
-If you're using Cursor, VS Code with Claude, or Claude Desktop, you can use the MCP tools directly:
-
-1. Configure the MCP server in your IDE
-2. Use natural language to manage agents:
-   - "Initialize a new fitness agent"
-   - "Add a tool for tracking workouts"
-   - "Create a view for showing progress charts"
-
-See [README.md](../README.md) for MCP setup instructions.
-
-## Troubleshooting
-
-### Command Not Found
-Make sure you're running commands with `uv run`:
-```bash
-uv run a4e --help
-```
-
-### Development Server Issues
-1. Check if port 5000 is in use:
-   ```bash
-   lsof -i :5000
-   ```
-2. Set ngrok token:
-   ```bash
-   ngrok config add-authtoken YOUR_TOKEN
-   ```
-
-### Validation Errors
-Run with verbose output:
-```bash
-uv run a4e validate --agent ./path/to/agent
-```
-
-## Getting Help
-
-- Run `uv run a4e --help` for CLI help
-- Check [AGENTS.md](../AGENTS.md) for architecture details
-- Open an issue on GitHub for bugs
+- [View System](./VIEW_SYSTEM.md) - How views work in production
