@@ -70,7 +70,7 @@ def run_agent_server(agent_path: Path, port: int):
 
     # Load tools schemas
     tools_schemas_path = agent_path / "tools" / "schemas.json"
-    tools_schemas = []
+    tools_schemas = {}
     if tools_schemas_path.exists():
         tools_schemas = json.loads(tools_schemas_path.read_text())
 
@@ -129,14 +129,15 @@ def run_agent_server(agent_path: Path, port: int):
 
     async def get_tools(request):
         # Convert schema format to frontend expected format
+        # tools_schemas is a dict: {"tool_name": {"name": "...", "parameters": {...}}}
         tools = []
-        for schema in tools_schemas:
+        for tool_name, schema in tools_schemas.items():
             params = []
-            if "inputSchema" in schema and "properties" in schema["inputSchema"]:
-                required = schema["inputSchema"].get("required", [])
-                for param_name, param_info in schema["inputSchema"][
-                    "properties"
-                ].items():
+            # Handle both "parameters" and "inputSchema" formats
+            param_schema = schema.get("parameters") or schema.get("inputSchema", {})
+            if "properties" in param_schema:
+                required = param_schema.get("required", [])
+                for param_name, param_info in param_schema["properties"].items():
                     params.append(
                         {
                             "name": param_name,
@@ -147,7 +148,7 @@ def run_agent_server(agent_path: Path, port: int):
                     )
             tools.append(
                 {
-                    "name": schema.get("name", ""),
+                    "name": schema.get("name", tool_name),
                     "description": schema.get("description", ""),
                     "parameters": params,
                 }
@@ -389,13 +390,14 @@ def run_agent_server(agent_path: Path, port: int):
         ]
     )
 
-    # Add CORS middleware
+    # Add CORS middleware with expose_headers for ngrok compatibility
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["*"],
     )
 
     # Add request logging middleware
