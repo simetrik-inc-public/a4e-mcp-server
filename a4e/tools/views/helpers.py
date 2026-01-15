@@ -44,7 +44,10 @@ def create_view(
         # Create view.tsx
         template = jinja_env.get_template("view.tsx.j2")
         code = template.render(
-            view_name=view_name, description=description, props=props
+            view_id=view_id,
+            view_name=view_name,
+            description=description,
+            props=props
         )
         (view_dir / "view.tsx").write_text(code)
 

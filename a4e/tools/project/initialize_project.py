@@ -145,12 +145,27 @@ def initialize_project(
 
         # Create welcome view (MANDATORY)
         from ..views.helpers import create_view
-        create_view(
+        welcome_result = create_view(
             view_id="welcome",
             description="Welcome view for the agent",
             props={"title": {"type": "string", "description": "Welcome title"}},
             project_dir=project_dir,
         )
+        
+        # Verify welcome view was created successfully
+        if not welcome_result.get("success"):
+            return {
+                "success": False,
+                "error": f"Failed to create welcome view: {welcome_result.get('error')}",
+            }
+        
+        # Double-check welcome view files exist
+        welcome_view_tsx = project_dir / "views" / "welcome" / "view.tsx"
+        if not welcome_view_tsx.exists():
+            return {
+                "success": False,
+                "error": "Welcome view was not created properly. Missing views/welcome/view.tsx",
+            }
 
         # Create example content based on template
         if template in ["with-tools", "full"]:

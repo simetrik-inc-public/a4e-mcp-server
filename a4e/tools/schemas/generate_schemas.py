@@ -52,7 +52,15 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
     results = {
         "tools": {"count": 0, "status": "skipped", "errors": []},
         "views": {"count": 0, "status": "skipped", "errors": []},
+        "warnings": [],
     }
+
+    # Verify welcome view exists (MANDATORY for all agents)
+    welcome_view = views_dir / "welcome" / "view.tsx"
+    if views_dir.exists() and not welcome_view.exists():
+        results["warnings"].append(
+            "Missing required 'welcome' view. Run initialize_project or create views/welcome/view.tsx manually."
+        )
 
     # Check for existing schemas if force is False
     tools_schema_file = tools_dir / "schemas.json" if tools_dir.exists() else None
