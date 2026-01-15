@@ -26,6 +26,7 @@ def initialize_project(
         "General",
     ],
     template: Literal["basic", "with-tools", "with-views", "full"] = "basic",
+    project_path: Optional[str] = None,
 ) -> dict:
     """
     Initialize a new A4E agent project
@@ -36,6 +37,9 @@ def initialize_project(
         description: Short description of the agent
         category: Agent category for marketplace
         template: Project template (basic=files only, with-tools=example tool, with-views=example view, full=both)
+        project_path: Base directory where the agent will be created (e.g., "/Users/me/projects/my-app"). 
+                      The agent will be created at {project_path}/file-store/agent-store/{name}/.
+                      If not provided, uses the current workspace directory.
 
     Returns:
         Project details with created files and next steps
@@ -47,8 +51,24 @@ def initialize_project(
             "error": "Agent name must be alphanumeric with hyphens/underscores only",
         }
 
-    # Use helper to determine path
-    project_dir = get_project_dir(name)
+    # Determine project directory
+    if project_path:
+        # Use explicit path provided by the LLM/user
+        base_dir = Path(project_path).resolve()
+        if not base_dir.exists():
+            return {
+                "success": False,
+                "error": f"Project path does not exist: {project_path}",
+            }
+        if not base_dir.is_dir():
+            return {
+                "success": False,
+                "error": f"Project path is not a directory: {project_path}",
+            }
+        project_dir = base_dir / "file-store" / "agent-store" / name
+    else:
+        # Use automatic detection (env var, cwd, etc.)
+        project_dir = get_project_dir(name)
 
     if project_dir.exists():
         return {"success": False, "error": f"Directory '{project_dir}' already exists"}

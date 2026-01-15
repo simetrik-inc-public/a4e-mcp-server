@@ -3,12 +3,21 @@ A4E MCP Server - Main entry point.
 
 This server provides tools for creating and managing A4E agents.
 All tools are organized in the tools/ directory by category.
+
+IMPORTANT: This server communicates via stdio (stdin/stdout).
+All logging MUST go to stderr to avoid breaking the MCP protocol.
 """
 
 from pathlib import Path
 import argparse
+import sys
 
 from .core import mcp, set_project_dir
+
+
+def _log_error(message: str) -> None:
+    """Log error to stderr (never stdout, which is reserved for MCP protocol)."""
+    print(f"[a4e] {message}", file=sys.stderr)
 
 # Import all tools to register them with the MCP server
 # Each tool uses the @mcp.tool() decorator from core.py
@@ -65,8 +74,8 @@ def main():
         project_dir = Path(args.project_dir).resolve()
         # Validate that it exists
         if not project_dir.exists():
-            print(f"Error: Project directory does not exist: {project_dir}")
-            exit(1)
+            _log_error(f"Project directory does not exist: {project_dir}")
+            sys.exit(1)
         set_project_dir(project_dir)
 
     # Run MCP server

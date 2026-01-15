@@ -62,9 +62,13 @@ initialize_project(
     display_name="My Agent",
     description="What the agent does",
     category="category",
-    template="basic"           # basic | with-tools | with-views | full
+    template="basic",          # basic | with-tools | with-views | full
+    project_path="/path/to/workspace"  # IMPORTANT: Pass the current workspace path
 )
 ```
+
+**IMPORTANT**: Always pass `project_path` with the user's current workspace/project directory.
+The agent will be created at `{project_path}/file-store/agent-store/{name}/`.
 
 ### Step 2: Add Tools
 ```python
@@ -161,8 +165,15 @@ User: "Calculate my BMI"
 ## Quick Example
 
 ```python
-# 1. Initialize
-initialize_project(name="calculator", display_name="Calculator", description="Math calculator", category="utilities", template="basic")
+# 1. Initialize (ALWAYS pass project_path!)
+initialize_project(
+    name="calculator", 
+    display_name="Calculator", 
+    description="Math calculator", 
+    category="Productivity", 
+    template="basic",
+    project_path="/Users/me/my-project"  # Current workspace path
+)
 
 # 2. Add tool
 add_tool(agent_name="calculator", tool_name="add_numbers", description="Add two numbers", parameters={"a": "number", "b": "number"})

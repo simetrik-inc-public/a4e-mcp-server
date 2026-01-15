@@ -1,5 +1,8 @@
 """
 Schema generation tool.
+
+NOTE: This tool may be called by the MCP server which uses stdio.
+All logging MUST go to stderr to avoid breaking the MCP protocol.
 """
 
 from pathlib import Path
@@ -12,6 +15,11 @@ import importlib.util
 from types import ModuleType
 
 from ...core import mcp, get_project_dir
+
+
+def _log(message: str) -> None:
+    """Log to stderr (stdout is reserved for MCP protocol)."""
+    print(message, file=sys.stderr)
 
 
 @mcp.tool()
@@ -53,14 +61,14 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
     if not force:
         # Check if tool schemas exist
         if tools_schema_file and tools_schema_file.exists():
-            print(
+            _log(
                 f"Skipping tool schema generation - {tools_schema_file} exists (use force=True to overwrite)"
             )
             results["tools"]["status"] = "skipped"
 
         # Check if view schemas exist
         if views_schema_file and views_schema_file.exists():
-            print(
+            _log(
                 f"Skipping view schema generation - {views_schema_file} exists (use force=True to overwrite)"
             )
             results["views"]["status"] = "skipped"
@@ -128,14 +136,14 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
                                 break
             except Exception as e:
                 error_msg = f"Error processing {tool_file}: {e}"
-                print(error_msg)
+                _log(error_msg)
                 results["tools"]["errors"].append(error_msg)
                 has_errors = True
 
         try:
             schema_file = tools_dir / "schemas.json"
             if schema_file.exists() and force:
-                print(f"Overwriting {schema_file}")
+                _log(f"Overwriting {schema_file}")
             
             # Convert list to dictionary format with tool names as keys
             # This is the format expected by the A4E main application
@@ -163,7 +171,7 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
             results["tools"]["status"] = "error" if has_errors else "success"
         except Exception as e:
             error_msg = f"Error writing schemas.json: {e}"
-            print(error_msg)
+            _log(error_msg)
             results["tools"]["errors"].append(error_msg)
             results["tools"]["status"] = "error"
 
@@ -233,7 +241,7 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
                 # Write individual schema
                 view_schema_file = view_dir / "view.schema.json"
                 if view_schema_file.exists() and force:
-                    print(f"Overwriting {view_schema_file}")
+                    _log(f"Overwriting {view_schema_file}")
                 view_schema_file.write_text(json.dumps(schema, indent=2))
 
                 # Add to aggregated dict
@@ -248,7 +256,7 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
 
             except Exception as e:
                 error_msg = f"Error processing view {view_dir}: {e}"
-                print(error_msg)
+                _log(error_msg)
                 results["views"]["errors"].append(error_msg)
                 has_errors = True
 
@@ -256,11 +264,11 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
         try:
             aggregated_schema_file = views_dir / "schemas.json"
             if aggregated_schema_file.exists() and force:
-                print(f"Overwriting {aggregated_schema_file}")
+                _log(f"Overwriting {aggregated_schema_file}")
             aggregated_schema_file.write_text(json.dumps(aggregated_views, indent=2))
         except Exception as e:
             error_msg = f"Error writing views/schemas.json: {e}"
-            print(error_msg)
+            _log(error_msg)
             results["views"]["errors"].append(error_msg)
             has_errors = True
 
