@@ -64,7 +64,7 @@ def main():
         "--project-dir",
         type=str,
         help="Root directory for agent projects (standard MCP pattern). "
-        "Agents will be created in {project-dir}/file-store/agent-store/",
+        "Agents will be created in {project-dir}/{agent-name}/",
     )
 
     args, unknown = parser.parse_known_args()

@@ -303,7 +303,7 @@ The `validate` tool checks agent integrity before deployment:
 
 - All user inputs are sanitized via `sanitize_input()` before template rendering
 - Template injection is prevented by stripping non-alphanumeric characters
-- Agents cannot be created in HOME directory without proper agent-store structure
+- Agents cannot be created directly in HOME directory (must specify project_path)
 
 ## Dependencies
 

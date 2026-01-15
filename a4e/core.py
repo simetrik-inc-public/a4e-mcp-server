@@ -93,19 +93,17 @@ def get_project_dir(agent_name: Optional[str] = None) -> Path:
     if not agent_name:
         return root
 
-    # Agents live in file-store/agent-store
-    agent_store = root / "file-store" / "agent-store"
-
-    # Safety: Warn if creating in HOME directory
-    if root == Path.home() and not agent_store.exists():
+    # Safety: Warn if creating in HOME directory without explicit path
+    if root == Path.home():
         raise ValueError(
-            f"Cannot determine workspace directory.\n"
+            f"Cannot create agent in HOME directory.\n"
             f"\n"
             f"Please specify project_path in your tool call:\n"
             f'  initialize_project(name="{agent_name}", project_path="/path/to/your/project", ...)\n'
             f"\n"
-            f"The agent will be created at: {{project_path}}/file-store/agent-store/{agent_name}/"
+            f"The agent will be created at: {{project_path}}/{agent_name}/"
         )
 
-    return agent_store / agent_name
+    # Create agent directly in the workspace root
+    return root / agent_name
 

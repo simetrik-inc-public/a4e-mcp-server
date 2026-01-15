@@ -68,7 +68,7 @@ initialize_project(
 ```
 
 **IMPORTANT**: Always pass `project_path` with the user's current workspace/project directory.
-The agent will be created at `{project_path}/file-store/agent-store/{name}/`.
+The agent will be created at `{project_path}/{name}/`.
 
 ### Step 2: Add Tools
 ```python

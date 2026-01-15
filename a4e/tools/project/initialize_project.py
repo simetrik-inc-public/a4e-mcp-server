@@ -37,8 +37,8 @@ def initialize_project(
         description: Short description of the agent
         category: Agent category for marketplace
         template: Project template (basic=files only, with-tools=example tool, with-views=example view, full=both)
-        project_path: Base directory where the agent will be created (e.g., "/Users/me/projects/my-app"). 
-                      The agent will be created at {project_path}/file-store/agent-store/{name}/.
+        project_path: Base directory where the agent folder will be created.
+                      The agent will be created at {project_path}/{name}/.
                       If not provided, uses the current workspace directory.
 
     Returns:
@@ -65,7 +65,8 @@ def initialize_project(
                 "success": False,
                 "error": f"Project path is not a directory: {project_path}",
             }
-        project_dir = base_dir / "file-store" / "agent-store" / name
+        # Create agent directly in the provided path
+        project_dir = base_dir / name
     else:
         # Use automatic detection (env var, cwd, etc.)
         project_dir = get_project_dir(name)
@@ -74,7 +75,7 @@ def initialize_project(
         return {"success": False, "error": f"Directory '{project_dir}' already exists"}
 
     try:
-        # Ensure file-store/agent-store structure exists
+        # Ensure parent directory exists
         agent_store_root = project_dir.parent
         agent_store_root.mkdir(parents=True, exist_ok=True)
 

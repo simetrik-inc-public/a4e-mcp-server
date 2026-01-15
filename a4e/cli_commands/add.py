@@ -34,10 +34,6 @@ def find_agent_dir(agent_name: Optional[str] = None) -> Optional[Path]:
         # Check relative to cwd
         if (cwd / agent_name).exists():
             return cwd / agent_name
-        # Check in agent-store
-        agent_store = cwd / "file-store" / "agent-store" / agent_name
-        if agent_store.exists():
-            return agent_store
         return None
 
     # Check if cwd is an agent directory (has agent.py and metadata.json)

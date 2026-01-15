@@ -58,7 +58,7 @@ def start(
 ) -> None:
     """
     Starts the development server with an ngrok tunnel.
-    This command must be run from within the 'agent-store' directory.
+    Run this command from an agent directory or use --directory to specify the path.
     """
     if not auth_token:
         auth_token = get_ngrok_authtoken()
@@ -80,39 +80,34 @@ def start(
         # We're inside an agent directory - use it directly
         project_dir = current_dir
         print(f"Detected agent directory: {project_dir.name}")
-    elif current_dir.name == "agent-store":
-        # We're in agent-store - list available agents and prompt for selection
-        agent_store_path = current_dir
-        available_agents = []
-        if agent_store_path.is_dir():
-            available_agents = [d for d in agent_store_path.iterdir() if d.is_dir()]
+    else:
+        # Check if current directory contains agent subdirectories
+        available_agents = [
+            d for d in current_dir.iterdir() 
+            if d.is_dir() and (d / "agent.py").exists() and (d / "metadata.json").exists()
+        ]
 
-        while not project_dir:
-            print("\nSelect an agent to start:")
-            if available_agents:
+        if available_agents:
+            while not project_dir:
+                print("\nSelect an agent to start:")
                 for i, agent in enumerate(available_agents):
                     print(f"  [{i + 1}] {agent.name}")
                 prompt_text = "\nPlease choose an agent"
-            else:
-                print("No agents found in the current 'agent-store' directory.")
-                raise typer.Exit(code=1)
 
-            try:
-                # Check if user entered a number
-                response = typer.prompt(prompt_text, type=str)
-                choice_index = int(response) - 1
-                if 0 <= choice_index < len(available_agents):
-                    project_dir = available_agents[choice_index]
-                else:
-                    print("Invalid number. Please try again.")
-            except ValueError:
-                # User entered a path string
-                print("Please enter a valid number.")
-    else:
-        print("Error: Run this command from an agent directory or the 'agent-store' directory.")
-        print(f"Current directory: {current_dir}")
-        print("\nTip: cd into your agent folder, or use --directory to specify the path.")
-        raise typer.Exit(code=1)
+                try:
+                    response = typer.prompt(prompt_text, type=str)
+                    choice_index = int(response) - 1
+                    if 0 <= choice_index < len(available_agents):
+                        project_dir = available_agents[choice_index]
+                    else:
+                        print("Invalid number. Please try again.")
+                except ValueError:
+                    print("Please enter a valid number.")
+        else:
+            print("Error: Not in an agent directory and no agent folders found.")
+            print(f"Current directory: {current_dir}")
+            print("\nTip: cd into your agent folder, or use --directory to specify the path.")
+            raise typer.Exit(code=1)
 
     # Final validation of the selected directory
     if not project_dir or not project_dir.is_dir():
