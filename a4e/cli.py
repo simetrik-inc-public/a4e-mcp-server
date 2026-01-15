@@ -4,12 +4,12 @@ import typer
 from .cli_commands import dev, init, add, list, validate, deploy, info, remove, update, mcp
 
 # Version from pyproject.toml
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 
 
 def version_callback(value: bool):
     if value:
-        typer.echo(f"a4e-mcp-server {__version__}")
+        typer.echo(f"a4e {__version__}")
         raise typer.Exit()
 
 

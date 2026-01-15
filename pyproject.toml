@@ -1,9 +1,31 @@
 [project]
-name = "a4e-mcp-server"
-version = "0.1.0"
+name = "a4e"
+version = "0.1.2"
 description = "A comprehensive MCP server toolkit for building, managing, and running AI agents compatible with the A4E ecosystem."
 readme = "README.md"
-requires-python = ">=3.11"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    {name = "Angel Castiblanco", email = "angel.castiblanco@simetrik.com"},
+    {name = "Michael Guerrero", email = "michael.guerrero@simetrik.com"},
+    {name = "Jonathan Batista", email = "jonathan.batista@simetrik.com"},
+]
+maintainers = [
+    {name = "Simetrik", email = "angel.castiblanco@simetrik.com"},
+]
+keywords = ["mcp", "ai", "agents", "llm", "model-context-protocol", "a4e", "cursor", "claude", "simetrik"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "jinja2>=3.1.6",
     "mcp[cli]>=1.22.0",
@@ -17,11 +39,25 @@ dependencies = [
     "watchdog>=6.0.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/simetrik-inc-public/a4e-mcp-server"
+Documentation = "https://github.com/simetrik-inc-public/a4e-mcp-server#readme"
+Repository = "https://github.com/simetrik-inc-public/a4e-mcp-server"
+Issues = "https://github.com/simetrik-inc-public/a4e-mcp-server/issues"
+
 [project.scripts]
 a4e = "a4e.cli:app"
 
 [tool.setuptools.package-data]
-"a4e" = ["templates/*"]
+"a4e" = ["templates/**/*", "templates/*"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["a4e*"]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [tool.uv]
 package = true
@@ -29,4 +65,6 @@ package = true
 [dependency-groups]
 dev = [
     "types-pyperclip>=1.9.0.20250801",
+    "twine>=6.0.0",
+    "build>=1.0.0",
 ]
