@@ -1,6 +1,6 @@
 [project]
 name = "a4e"
-version = "0.1.6"
+version = "0.1.7"
 description = "A comprehensive MCP server toolkit for building, managing, and running AI agents compatible with the A4E ecosystem."
 readme = "README.md"
 license = "MIT"

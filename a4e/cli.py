@@ -4,7 +4,7 @@ import typer
 from .cli_commands import dev, init, add, list, validate, deploy, info, remove, update, mcp
 
 # Version from pyproject.toml
-__version__ = "0.1.6"
+__version__ = "0.1.7"
 
 
 def version_callback(value: bool):

@@ -3,11 +3,13 @@ import shutil
 import time
 import sys
 import re
+import platform
 from pathlib import Path
 from typing import Optional, Dict, Any
 from urllib.parse import urlencode
 
 HUB_URL = "https://dev-a4e.global.simetrik.com"
+IS_WINDOWS = platform.system() == "Windows"
 
 
 class DevManager:
@@ -37,23 +39,57 @@ class DevManager:
     def _cleanup_port(port: int):
         """Kill any process using the specified port and any ngrok process."""
         try:
-            # 1. Kill process on port (lsof on Mac/Linux)
-            # Find PID using port
-            cmd = f"lsof -t -i:{port}"
-            try:
-                pid = subprocess.check_output(cmd, shell=True).decode().strip()
-                if pid:
-                    print(f"Killing process {pid} on port {port}")
-                    subprocess.run(f"kill -9 {pid}", shell=True)
-            except subprocess.CalledProcessError:
-                pass  # No process found
+            if IS_WINDOWS:
+                # Windows: Use netstat and taskkill
+                # Find PID using port
+                try:
+                    result = subprocess.run(
+                        f'netstat -ano | findstr :{port}',
+                        shell=True,
+                        capture_output=True,
+                        text=True
+                    )
+                    if result.stdout:
+                        # Parse PID from netstat output (last column)
+                        for line in result.stdout.strip().split('\n'):
+                            parts = line.split()
+                            if len(parts) >= 5:
+                                pid = parts[-1]
+                                if pid.isdigit():
+                                    print(f"Killing process {pid} on port {port}")
+                                    subprocess.run(
+                                        f'taskkill /F /PID {pid}',
+                                        shell=True,
+                                        capture_output=True
+                                    )
+                except Exception:
+                    pass  # No process found or error parsing
 
-            # 2. Kill orphan ngrok processes
-            # This is a bit aggressive but ensures clean state as requested
-            try:
-                subprocess.run("pkill -f ngrok", shell=True)
-            except Exception:
-                pass
+                # Kill ngrok processes on Windows
+                try:
+                    subprocess.run(
+                        'taskkill /F /IM ngrok.exe',
+                        shell=True,
+                        capture_output=True
+                    )
+                except Exception:
+                    pass
+            else:
+                # Unix (macOS/Linux): Use lsof and kill
+                cmd = f"lsof -t -i:{port}"
+                try:
+                    pid = subprocess.check_output(cmd, shell=True).decode().strip()
+                    if pid:
+                        print(f"Killing process {pid} on port {port}")
+                        subprocess.run(f"kill -9 {pid}", shell=True)
+                except subprocess.CalledProcessError:
+                    pass  # No process found
+
+                # Kill orphan ngrok processes
+                try:
+                    subprocess.run("pkill -f ngrok", shell=True)
+                except Exception:
+                    pass
 
         except Exception as e:
             print(f"Warning during cleanup: {e}")
