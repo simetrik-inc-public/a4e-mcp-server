@@ -377,3 +377,115 @@ If views aren't changing in production:
 3. **Test incrementally** - Verify each view works before adding more
 4. **Add aliases** - Support both short (`welcome`) and full (`travel_welcome`) IDs
 5. **Log view selection** - Add console logs to debug production issues
+
+---
+
+## Mobile-Responsive Views
+
+The A4E Hub automatically passes an `isMobile` prop to all views when running on mobile devices (screen width < 768px).
+
+### Creating Mobile-Optimized Views
+
+Use the `mobile_optimized` flag when creating views:
+
+```python
+add_view(
+    view_id="product_list",
+    description="Display product catalog",
+    props={"products": "array", "category": "string"},
+    mobile_optimized=True
+)
+```
+
+### The isMobile Prop
+
+Every view receives an `isMobile` boolean prop:
+
+```tsx
+interface MyViewProps {
+  isMobile?: boolean;  // Automatically passed by A4E Hub
+  // ... other props
+}
+
+export default function MyView({ isMobile = false, ...props }: MyViewProps) {
+  return (
+    <div className={`p-4 ${isMobile ? 'pb-20' : 'p-6'}`}>
+      {/* Content */}
+    </div>
+  );
+}
+```
+
+### Mobile Design Patterns
+
+#### 1. Responsive Grid Layouts
+
+```tsx
+<div className={`
+  grid gap-4
+  ${isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}
+`}>
+  {items.map(item => <Card key={item.id} />)}
+</div>
+```
+
+#### 2. Touch-Friendly Scrolling
+
+```tsx
+<div className={isMobile ? 'touch-pan-y touch-pan-x' : ''}>
+  {/* Scrollable content */}
+</div>
+```
+
+#### 3. Mobile Bottom Action Bar
+
+Reserve space for fixed bottom navigation:
+
+```tsx
+{isMobile && (
+  <div className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-sm p-4">
+    <button className="w-full py-3 bg-emerald-600 rounded-xl">
+      Take Action
+    </button>
+  </div>
+)}
+
+{/* Add padding to content to avoid overlap */}
+<div className={isMobile ? 'pb-20' : ''}>
+  {/* Main content */}
+</div>
+```
+
+#### 4. Responsive Text Sizes
+
+```tsx
+<h1 className="text-xl md:text-2xl lg:text-3xl">Title</h1>
+<p className="text-sm md:text-base">Description</p>
+```
+
+#### 5. Safe Area Insets (iOS)
+
+Handle notches and home indicators:
+
+```tsx
+<div className="safe-area-inset-bottom">
+  {/* Content near bottom of screen */}
+</div>
+```
+
+### Mobile View Tips
+
+| Tip | Description |
+|-----|-------------|
+| Use `isMobile` prop | Conditionally render mobile-specific UI |
+| Responsive grids | `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` |
+| Touch scrolling | Add `touch-pan-y touch-pan-x` classes |
+| Bottom padding | Reserve 80px (`pb-20`) for mobile action bars |
+| Text scaling | `text-xl md:text-2xl lg:text-3xl` |
+| Safe areas | Use `safe-area-inset-bottom` for iOS |
+
+### Testing Mobile Views
+
+1. **Browser DevTools**: Use responsive design mode (F12 → toggle device toolbar)
+2. **A4E Hub**: Test on actual mobile devices via the deployed URL
+3. **ngrok**: Share local development with mobile devices

@@ -10,6 +10,7 @@ Structure:
 - validation/   : Validation (validate)
 - dev/          : Development server (dev_start, dev_stop, check_environment)
 - deploy/       : Deployment (deploy)
+- databases/    : Database configuration (SQLite, Supabase, PostgreSQL, MySQL, MongoDB)
 """
 
 # Project tools
@@ -19,7 +20,7 @@ from .project import initialize_project, get_agent_info, get_instructions
 from .agent_tools import add_tool, list_tools, remove_tool, update_tool
 
 # Views management
-from .views import add_view, list_views, remove_view, update_view
+from .views import add_view, list_views, remove_view, update_view, get_mobile_view_tips
 
 # Skills management
 from .skills import add_skill, list_skills, remove_skill, update_skill
@@ -36,6 +37,35 @@ from .dev import dev_start, dev_stop, check_environment
 # Deployment
 from .deploy import deploy
 
+# Database configuration
+from .databases import (
+    # Configuration
+    configure_db_connection,
+    list_db_types,
+    generate_db_tools,
+    # Upload/Sync
+    upload_database,
+    check_database,
+    sync_database,
+    list_databases,
+    # SQLite
+    validate_sqlite,
+    sqlite_query,
+    sqlite_execute,
+    # Supabase
+    supabase_connect,
+    supabase_validate,
+    supabase_list_tables,
+    supabase_select,
+    supabase_insert,
+    supabase_update,
+    supabase_delete,
+    supabase_upsert,
+    supabase_rpc,
+    supabase_get_user,
+    supabase_list_users,
+)
+
 __all__ = [
     # Project
     "initialize_project",
@@ -51,6 +81,7 @@ __all__ = [
     "list_views",
     "remove_view",
     "update_view",
+    "get_mobile_view_tips",
     # Skills
     "add_skill",
     "list_skills",
@@ -66,5 +97,28 @@ __all__ = [
     "check_environment",
     # Deployment
     "deploy",
+    # Database Configuration
+    "configure_db_connection",
+    "list_db_types",
+    "generate_db_tools",
+    "upload_database",
+    "check_database",
+    "sync_database",
+    "list_databases",
+    # SQLite
+    "validate_sqlite",
+    "sqlite_query",
+    "sqlite_execute",
+    # Supabase
+    "supabase_connect",
+    "supabase_validate",
+    "supabase_list_tables",
+    "supabase_select",
+    "supabase_insert",
+    "supabase_update",
+    "supabase_delete",
+    "supabase_upsert",
+    "supabase_rpc",
+    "supabase_get_user",
+    "supabase_list_users",
 ]
-
