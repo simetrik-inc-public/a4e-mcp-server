@@ -1,15 +1,24 @@
 # A4E CLI Reference
 
-Complete command reference for the A4E Agent Creator CLI.
+Complete command reference for the A4E CLI.
 
-## Installation & Running
+## Installation
 
 ```bash
-# Using uv (recommended)
-uv run a4e --help
+pip install a4e
+```
 
-# Using python directly
-python -m a4e.cli --help
+## Running
+
+```bash
+# Show help
+a4e --help
+
+# Show version
+a4e --version
+
+# For development (from source)
+uv run a4e --help
 ```
 
 ## Commands Overview
@@ -339,12 +348,12 @@ a4e dev start [OPTIONS]
 
 | Option | Description |
 |--------|-------------|
-| `--directory` | Directory containing agent-store |
+| `--directory` | Agent directory path |
 | `--port` | Local port (default: 5000) |
 | `--auth-token` | Ngrok auth token |
 
 ```bash
-a4e dev start --directory file-store/agent-store
+a4e dev start --directory my-agent
 ```
 
 ---
@@ -397,4 +406,120 @@ Ensure dependencies are installed:
 uv sync
 # or
 pip install -e .
+```
+
+---
+
+## `a4e mcp`
+
+Configure MCP server for IDEs.
+
+### `a4e mcp setup`
+
+Configure A4E MCP server for an IDE.
+
+```bash
+a4e mcp setup <IDE> [OPTIONS]
+```
+
+| Argument | Values | Description |
+|----------|--------|-------------|
+| `IDE` | `cursor`, `claude-code`, `antigravity` | Target IDE |
+
+| Option | Short | Type | Description |
+|--------|-------|------|-------------|
+| `--dry-run` | `-n` | `flag` | Preview changes without applying |
+| `--force` | `-f` | `flag` | Overwrite existing A4E config |
+
+```bash
+# Preview what would be configured
+a4e mcp setup cursor --dry-run
+
+# Configure for Cursor
+a4e mcp setup cursor
+
+# Overwrite existing config
+a4e mcp setup cursor --force
+```
+
+### `a4e mcp show`
+
+Show current MCP configuration for an IDE.
+
+```bash
+a4e mcp show <IDE>
+```
+
+```bash
+a4e mcp show cursor
+```
+
+### `a4e mcp remove`
+
+Remove A4E from IDE configuration (preserves other MCP servers).
+
+```bash
+a4e mcp remove <IDE>
+```
+
+```bash
+a4e mcp remove cursor
+```
+
+### `a4e mcp test`
+
+Test that the MCP server can start correctly.
+
+```bash
+a4e mcp test
+```
+
+Verifies:
+- Module can be imported
+- Dependencies are installed
+- Server process starts
+
+### `a4e mcp path`
+
+Show the config file path for an IDE.
+
+```bash
+a4e mcp path <IDE>
+```
+
+```bash
+a4e mcp path cursor
+# Output: /Users/you/.cursor/mcp.json
+```
+
+### `a4e mcp list`
+
+List all supported IDEs and their config paths.
+
+```bash
+a4e mcp list
+```
+
+### Config File Locations
+
+| IDE | Path |
+|-----|------|
+| Cursor | `~/.cursor/mcp.json` |
+| Claude Code | `~/.claude.json` |
+| Antigravity | `~/.gemini/antigravity/mcp_config.json` |
+
+### Backup
+
+When running `a4e mcp setup`, a backup is automatically created:
+
+| IDE | Backup Path |
+|-----|-------------|
+| Cursor | `~/.cursor/mcp.json.backup` |
+| Claude Code | `~/.claude.json.backup` |
+| Antigravity | `~/.gemini/antigravity/mcp_config.json.backup` |
+
+To restore:
+
+```bash
+cp ~/.cursor/mcp.json.backup ~/.cursor/mcp.json
 ```

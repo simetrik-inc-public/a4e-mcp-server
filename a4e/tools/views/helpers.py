@@ -104,10 +104,6 @@ def create_view(
         # Convert snake_case to PascalCase for component name
         view_name = "".join(word.title() for word in view_id.split("_"))
 
-        # Build props for templates
-        props_with_mobile = {"isMobile": {"type": "boolean", "required": False, "description": "Whether running on mobile"}}
-        props_with_mobile.update(props)
-
         if mobile_optimized:
             # Use enhanced mobile template
             code = _create_mobile_view(view_name, description, props)
@@ -117,7 +113,6 @@ def create_view(
             code = template.render(
                 view_name=view_name, description=description, props=props
             )
-        
         (view_dir / "view.tsx").write_text(code)
 
         # Create view.schema.json (required by A4E View Renderer)
@@ -203,6 +198,61 @@ def _create_mobile_view(view_name: str, description: str, props: dict) -> str:
         props_interface="\n".join(props_interface),
         props_destructure="\n".join(props_destructure),
     )
+
+
+def update_dependencies(
+    dependencies: list, project_dir: Path, versions: dict = None
+) -> dict:
+    """
+    Update dependencies.json with new packages (without duplicates).
+
+    Args:
+        dependencies: List of npm package names (e.g., ["recharts", "date-fns"])
+        project_dir: Path to the agent project directory
+        versions: Optional dict of package versions (e.g., {"recharts": "2.10.0"})
+
+    Returns:
+        Result dictionary with success status and added packages
+    """
+    deps_file = project_dir / "dependencies.json"
+
+    # Default versions for common packages
+    from ...constants import DEFAULT_PACKAGE_VERSIONS
+
+    try:
+        # Load existing dependencies or create new structure
+        if deps_file.exists():
+            deps_data = json.loads(deps_file.read_text())
+        else:
+            deps_data = {
+                "version": "1.0.0",
+                "description": "External dependencies for agent views",
+                "dependencies": {}
+            }
+
+        existing_deps = deps_data.get("dependencies", {})
+        added = []
+
+        for pkg in dependencies:
+            if pkg not in existing_deps:
+                # Use provided version, default version, or "latest"
+                version = (versions or {}).get(pkg) or DEFAULT_PACKAGE_VERSIONS.get(pkg) or "latest"
+                existing_deps[pkg] = version
+                added.append(pkg)
+
+        deps_data["dependencies"] = existing_deps
+
+        # Write updated file
+        deps_file.write_text(json.dumps(deps_data, indent=2) + "\n")
+
+        return {
+            "success": True,
+            "added": added,
+            "total": len(existing_deps),
+            "message": f"Added {len(added)} new dependencies" if added else "No new dependencies added",
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 def get_view_responsive_tips() -> list:

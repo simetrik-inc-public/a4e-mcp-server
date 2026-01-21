@@ -1,5 +1,8 @@
 """
 Schema generation tool.
+
+NOTE: This tool may be called by the MCP server which uses stdio.
+All logging MUST go to stderr to avoid breaking the MCP protocol.
 """
 
 from pathlib import Path
@@ -12,6 +15,11 @@ import importlib.util
 from types import ModuleType
 
 from ...core import mcp, get_project_dir
+
+
+def _log(message: str) -> None:
+    """Log to stderr (stdout is reserved for MCP protocol)."""
+    print(message, file=sys.stderr)
 
 
 @mcp.tool()
@@ -44,7 +52,16 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
     results = {
         "tools": {"count": 0, "status": "skipped", "errors": []},
         "views": {"count": 0, "status": "skipped", "errors": []},
+        "dependencies": {"count": 0, "status": "skipped", "consolidated": []},
+        "warnings": [],
     }
+
+    # Verify welcome view exists (MANDATORY for all agents)
+    welcome_view = views_dir / "welcome" / "view.tsx"
+    if views_dir.exists() and not welcome_view.exists():
+        results["warnings"].append(
+            "Missing required 'welcome' view. Run initialize_project or create views/welcome/view.tsx manually."
+        )
 
     # Check for existing schemas if force is False
     tools_schema_file = tools_dir / "schemas.json" if tools_dir.exists() else None
@@ -53,14 +70,14 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
     if not force:
         # Check if tool schemas exist
         if tools_schema_file and tools_schema_file.exists():
-            print(
+            _log(
                 f"Skipping tool schema generation - {tools_schema_file} exists (use force=True to overwrite)"
             )
             results["tools"]["status"] = "skipped"
 
         # Check if view schemas exist
         if views_schema_file and views_schema_file.exists():
-            print(
+            _log(
                 f"Skipping view schema generation - {views_schema_file} exists (use force=True to overwrite)"
             )
             results["views"]["status"] = "skipped"
@@ -128,14 +145,14 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
                                 break
             except Exception as e:
                 error_msg = f"Error processing {tool_file}: {e}"
-                print(error_msg)
+                _log(error_msg)
                 results["tools"]["errors"].append(error_msg)
                 has_errors = True
 
         try:
             schema_file = tools_dir / "schemas.json"
             if schema_file.exists() and force:
-                print(f"Overwriting {schema_file}")
+                _log(f"Overwriting {schema_file}")
             
             # Convert list to dictionary format with tool names as keys
             # This is the format expected by the A4E main application
@@ -163,7 +180,7 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
             results["tools"]["status"] = "error" if has_errors else "success"
         except Exception as e:
             error_msg = f"Error writing schemas.json: {e}"
-            print(error_msg)
+            _log(error_msg)
             results["tools"]["errors"].append(error_msg)
             results["tools"]["status"] = "error"
 
@@ -233,7 +250,7 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
                 # Write individual schema
                 view_schema_file = view_dir / "view.schema.json"
                 if view_schema_file.exists() and force:
-                    print(f"Overwriting {view_schema_file}")
+                    _log(f"Overwriting {view_schema_file}")
                 view_schema_file.write_text(json.dumps(schema, indent=2))
 
                 # Add to aggregated dict
@@ -248,7 +265,7 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
 
             except Exception as e:
                 error_msg = f"Error processing view {view_dir}: {e}"
-                print(error_msg)
+                _log(error_msg)
                 results["views"]["errors"].append(error_msg)
                 has_errors = True
 
@@ -256,15 +273,105 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
         try:
             aggregated_schema_file = views_dir / "schemas.json"
             if aggregated_schema_file.exists() and force:
-                print(f"Overwriting {aggregated_schema_file}")
+                _log(f"Overwriting {aggregated_schema_file}")
             aggregated_schema_file.write_text(json.dumps(aggregated_views, indent=2))
         except Exception as e:
             error_msg = f"Error writing views/schemas.json: {e}"
-            print(error_msg)
+            _log(error_msg)
             results["views"]["errors"].append(error_msg)
             has_errors = True
 
         results["views"]["status"] = "error" if has_errors else "success"
+
+    # Consolidate dependencies from all views
+    if views_dir.exists():
+        try:
+            from ...constants import (
+                CORE_VIEW_DEPENDENCIES,
+                KNOWN_EXTERNAL_PACKAGES,
+                DEFAULT_PACKAGE_VERSIONS,
+            )
+
+            all_external_deps = set()
+
+            for view_dir in views_dir.iterdir():
+                if not view_dir.is_dir():
+                    continue
+
+                view_file = view_dir / "view.tsx"
+                if not view_file.exists():
+                    continue
+
+                try:
+                    content = view_file.read_text()
+
+                    # Extract imports: import ... from "package"
+                    import_matches = re.findall(
+                        r'import\s+.*?\s+from\s+["\']([^"\']+)["\']',
+                        content
+                    )
+
+                    for pkg in import_matches:
+                        # Skip relative imports and internal A4E imports
+                        if pkg.startswith(".") or pkg.startswith("@/"):
+                            continue
+
+                        # Get the base package name (e.g., "recharts" from "recharts/lib/something")
+                        base_pkg = pkg.split("/")[0]
+                        if base_pkg.startswith("@"):
+                            # Scoped package like @tanstack/react-table
+                            base_pkg = "/".join(pkg.split("/")[:2])
+
+                        # Skip core dependencies (already provided by A4E Hub)
+                        if base_pkg in CORE_VIEW_DEPENDENCIES:
+                            continue
+
+                        # Add external package (known or unknown)
+                        all_external_deps.add(base_pkg)
+
+                except Exception as e:
+                    _log(f"Error extracting imports from {view_file}: {e}")
+
+            # Update dependencies.json
+            if all_external_deps:
+                deps_file = project_dir / "dependencies.json"
+
+                # Load existing or create new
+                if deps_file.exists():
+                    deps_data = json.loads(deps_file.read_text())
+                else:
+                    deps_data = {
+                        "version": "1.0.0",
+                        "description": "External dependencies for agent views",
+                        "dependencies": {}
+                    }
+
+                existing_deps = deps_data.get("dependencies", {})
+                added = []
+
+                for pkg in sorted(all_external_deps):
+                    if pkg not in existing_deps:
+                        version = DEFAULT_PACKAGE_VERSIONS.get(pkg, "latest")
+                        existing_deps[pkg] = version
+                        added.append(pkg)
+
+                deps_data["dependencies"] = dict(sorted(existing_deps.items()))
+                deps_file.write_text(json.dumps(deps_data, indent=2) + "\n")
+
+                results["dependencies"]["count"] = len(existing_deps)
+                results["dependencies"]["consolidated"] = added
+                results["dependencies"]["status"] = "success"
+
+                if added:
+                    _log(f"Consolidated {len(added)} new dependencies: {', '.join(added)}")
+            else:
+                results["dependencies"]["status"] = "no_external_deps"
+
+        except Exception as e:
+            error_msg = f"Error consolidating dependencies: {e}"
+            _log(error_msg)
+            results["dependencies"]["status"] = "error"
+            results["dependencies"]["error"] = error_msg
 
     return results
 

@@ -1,187 +1,390 @@
-# A4E MCP Server
+# A4E
 
-The **A4E MCP Server** enables creators to build agents using natural language directly in their IDE (Cursor, Claude Desktop).
+[![PyPI version](https://badge.fury.io/py/a4e.svg)](https://badge.fury.io/py/a4e)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+**A4E** is a CLI toolkit for building conversational AI agents. It includes:
+
+- **CLI commands** for creating and managing agents (`a4e init`, `a4e add tool`, etc.)
+- **MCP server** for IDE integration (Cursor, Claude Code, Antigravity)
+- **Dev server** with hot-reload and ngrok tunneling
+
+## Requirements
+
+### Python 3.10+
+
+```bash
+# Check your version
+python --version
+
+# Install Python 3.10+ if needed
+# macOS (with Homebrew)
+brew install python@3.10
+
+# Ubuntu/Debian
+sudo apt update && sudo apt install python3.10
+
+# Windows (download from python.org)
+# https://www.python.org/downloads/
+```
+
+> **Note:** If you try to install with an older Python version, pip will show:
+> `ERROR: Package 'a4e' requires a different Python: X.Y.Z not in '>=3.10'`
+
+### ngrok (for dev server)
+
+The development server uses ngrok to create public tunnels for testing.
+
+1. **Create account:** https://ngrok.com/signup
+2. **Get your authtoken:** https://dashboard.ngrok.com/get-started/your-authtoken
+3. **Configure ngrok:**
+
+```bash
+# Option A: Install ngrok CLI and configure
+brew install ngrok/ngrok/ngrok   # macOS
+# or download from https://ngrok.com/download
+
+ngrok config add-authtoken YOUR_TOKEN_HERE
+
+# Option B: Set environment variable
+export NGROK_AUTHTOKEN=YOUR_TOKEN_HERE
+```
 
 ## Installation
 
-### Prerequisites
-
-1. **Python 3.10+**
-2. **uv** (recommended) or `pip`
-3. **ngrok Account**: Required for "Dev Mode" to share your local agent with the Hub.
-   - Sign up at [ngrok.com](https://ngrok.com)
-   - Get your Authtoken from the dashboard.
-
-### Setup
-
-1. Navigate to this directory:
-   ```bash
-   cd a4e-mcp-server
-   ```
-2. Install dependencies:
-   ```bash
-   uv sync
-   ```
-3. **Configure ngrok** (One-time setup):
-   ```bash
-   ngrok config add-authtoken <YOUR_TOKEN>
-   ```
-   _Or pass it later to `dev_start`._
-
-## Usage in Cursor
-
-### Option 1: MCP Settings UI
-
-1. Go to **Cursor Settings** > **Features** > **MCP**.
-2. Click **+ Add New MCP Server**.
-3. Enter:
-   - **Name**: `a4e`
-   - **Type**: `command`
-   - **Command**: `uv`
-   - **Args**: `run --directory /path/to/a4e-mcp-server python -m a4e.server`
-
-### Option 2: mcp.json Configuration (Recommended)
-
-Edit `~/.cursor/mcp.json` (or `.cursor/mcp.json` in your project):
-
-```json
-{
-  "mcpServers": {
-    "a4e": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--directory",
-        "/absolute/path/to/a4e-mcp-server",
-        "python",
-        "-m",
-        "a4e.server",
-        "--project-dir",
-        "/absolute/path/to/a4e-mcp-server"
-      ]
-    }
-  }
-}
+```bash
+pip install a4e
 ```
 
-**Example for macOS:**
+Verify installation:
 
-```json
-{
-  "mcpServers": {
-    "a4e": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--directory",
-        "/Users/yourname/Documents/a4e-mcp-server",
-        "python",
-        "-m",
-        "a4e.server",
-        "--project-dir",
-        "/Users/yourname/Documents/a4e-mcp-server"
-      ]
-    }
-  }
-}
+```bash
+a4e --version
 ```
 
-### Configuration Options
+## Quick Start
 
-| Option | Description |
-|--------|-------------|
-| `--directory` | Path to the a4e-mcp-server repository |
-| `--project-dir` | Where agents will be created (defaults to current directory) |
+### Option 1: Use with AI Assistant (MCP)
 
-After adding, restart Cursor to load the MCP server. You should see **21 tools** available.
+Configure A4E for your IDE:
 
-## Usage in Claude Desktop
+```bash
+# For Cursor
+a4e mcp setup cursor
 
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
+# For Claude Code
+a4e mcp setup claude-code
 
-```json
-{
-  "mcpServers": {
-    "a4e": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--directory",
-        "/absolute/path/to/a4e-mcp-server",
-        "python",
-        "-m",
-        "a4e.server"
-      ]
-    }
-  }
-}
+# For Antigravity
+a4e mcp setup antigravity
+```
+
+**Restart your IDE**, then ask your AI assistant:
+
+> "Create an agent called nutrition-coach that helps users track meals and calculate calories"
+
+### Option 2: Use CLI directly
+
+```bash
+# Create a new agent
+a4e init
+
+# Add components
+a4e add tool calculate_bmi
+a4e add view bmi_result
+a4e add skill show_bmi
+
+# Validate
+a4e validate
+
+# Start dev server
+a4e dev start
+
+# Deploy
+a4e deploy
+```
+
+## CLI Commands
+
+| Command            | Arguments                               | Description                               |
+| ------------------ | --------------------------------------- | ----------------------------------------- |
+| `a4e init`         | `--name`, `--template`                  | Initialize new agent (interactive wizard) |
+| `a4e add tool`     | `<name>` `string`                       | Add a Python tool                         |
+| `a4e add view`     | `<name>` `string`                       | Add a React view                          |
+| `a4e add skill`    | `<name>` `string`                       | Add a skill (connects tools → views)      |
+| `a4e list`         | `tools` \| `views` \| `skills` \| `all` | List components                           |
+| `a4e remove tool`  | `<name>` `string`                       | Remove a tool                             |
+| `a4e remove view`  | `<name>` `string`                       | Remove a view                             |
+| `a4e remove skill` | `<name>` `string`                       | Remove a skill                            |
+| `a4e update tool`  | `<name>` `string`                       | Update a tool                             |
+| `a4e update view`  | `<name>` `string`                       | Update a view                             |
+| `a4e update skill` | `<name>` `string`                       | Update a skill                            |
+| `a4e validate`     | `--strict`, `--agent`                   | Validate agent structure                  |
+| `a4e deploy`       | `--skip-validation`                     | Deploy to A4E Cloud                       |
+| `a4e dev start`    | `--port` `int`, `--auth-token` `string` | Start dev server with ngrok               |
+| `a4e info`         | `--json`                                | Show agent information                    |
+
+### Init Options
+
+| Option                 | Type     | Values                                                                                                                                | Description                   |
+| ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `--name`, `-n`         | `string` | `my-agent`                                                                                                                            | Agent ID (lowercase, hyphens) |
+| `--display-name`, `-d` | `string` | `"My Agent"`                                                                                                                          | Human-readable name           |
+| `--description`        | `string` | `"Agent description"`                                                                                                                 | Short description             |
+| `--category`, `-c`     | `enum`   | `Concierge`, `E-commerce`, `Fitness & Health`, `Education`, `Entertainment`, `Productivity`, `Finance`, `Customer Support`, `General` | Agent category                |
+| `--template`, `-t`     | `enum`   | `basic`, `with-tools`, `with-views`, `full`                                                                                           | Project template              |
+| `--yes`, `-y`          | `flag`   | —                                                                                                                                     | Skip interactive prompts      |
+
+### MCP Commands
+
+| Command          | Arguments | Values                                  | Description            |
+| ---------------- | --------- | --------------------------------------- | ---------------------- |
+| `a4e mcp setup`  | `<ide>`   | `cursor`, `claude-code`, `antigravity`  | Configure MCP for IDE  |
+| `a4e mcp show`   | `<ide>`   | `cursor`, `claude-code`, `antigravity`  | Show current config    |
+| `a4e mcp remove` | `<ide>`   | `cursor`, `claude-code`, `antigravity`  | Remove A4E from config |
+| `a4e mcp test`   | —         | —                                       | Test MCP server        |
+| `a4e mcp path`   | `<ide>`   | `cursor`, `claude-code`, `antigravity`  | Show config file path  |
+| `a4e mcp list`   | —         | —                                       | List supported IDEs    |
+
+### MCP Setup Options
+
+| Option            | Type   | Description                      |
+| ----------------- | ------ | -------------------------------- |
+| `--dry-run`, `-n` | `flag` | Preview changes without applying |
+| `--force`, `-f`   | `flag` | Overwrite existing A4E config    |
+
+## Agent Structure
+
+When you create an agent, A4E generates:
+
+```
+my-agent/
+├── agent.py           # Agent configuration
+├── metadata.json      # Agent metadata
+├── AGENTS.md          # Documentation for AI assistants
+├── prompts/
+│   └── agent.md       # System prompt / personality
+├── tools/
+│   ├── my_tool.py     # Python functions
+│   └── schemas.json   # Auto-generated schemas
+├── views/
+│   ├── my_view/
+│   │   └── view.tsx   # React components
+│   └── schemas.json   # Auto-generated schemas
+└── skills/
+    ├── my_skill/
+    │   └── SKILL.md   # Skill documentation
+    └── schemas.json   # Auto-generated schemas
 ```
 
 ## Concepts
 
-### What is an A4E Agent?
-
-An **A4E Agent** is a specialized AI assistant tailored for a specific domain or task (e.g., a Nutrition Coach or Daily Planner). It combines natural language understanding with custom capabilities defined by **Tools** and **Views**.
-
 ### Tools
 
-**Tools** are Python functions that give the agent the ability to perform actions or retrieve information.
+Python functions that give your agent capabilities:
 
-- Defined in `tools/*.py` using the `@tool` decorator.
-- The agent decides when to call a tool based on the user's request.
-- **How it works**: When you ask "Calculate BMI", the agent looks for a tool capable of that calculation, executes the Python code, and returns the result.
+```python
+from typing import Dict, Any
+
+def calculate_bmi(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Calculate BMI from height and weight."""
+    height = params.get("height_m")
+    weight = params.get("weight_kg")
+    bmi = weight / (height ** 2)
+    return {"bmi": round(bmi, 1), "status": "success"}
+```
 
 ### Views
 
-**Views** are React components that provide a rich graphical interface for the agent's responses.
+React components for rich UI responses:
 
-- Defined in `views/*/view.tsx`.
-- Used to display structured data (like charts, lists, or forms) instead of just text.
-- **How it works**: If a tool returns complex data (like a meal plan), the agent can choose to render a specific view (e.g., `MealPlanView`) to show that data interactively.
+```tsx
+interface BMIResultProps {
+  bmi: number;
+  category: string;
+}
 
-## Workflow
+export default function BMIResult({ bmi, category }: BMIResultProps) {
+  return (
+    <div className="p-4">
+      <h2>Your BMI: {bmi}</h2>
+      <p>Category: {category}</p>
+    </div>
+  );
+}
+```
 
-1. **Create an Agent**:
-   Open a new folder in Cursor (e.g., `my-agents/`).
-   Ask Cursor: _"Create a nutrition coach agent"_
-   -> This creates the folder `nutrition-coach` with `agent.py`, `metadata.json`, etc.
+### Skills
 
-2. **Add Tools**:
-   Ask: _"Add a tool to calculate BMI"_
-   -> Creates `tools/calculate_bmi.py`.
+Connect user intents to tools and views:
 
-3. **Add Views**:
-   Ask: _"Add a view to show the BMI result"_
-   -> Creates `views/bmi_result/view.tsx`.
+```json
+{
+  "id": "show_bmi",
+  "name": "Calculate BMI",
+  "intent_triggers": ["calculate my bmi", "what's my bmi"],
+  "internal_tools": ["calculate_bmi"],
+  "output": {
+    "view": "bmi_result"
+  }
+}
+```
 
-4. **Auto-Generate Schemas**:
-   The server automatically generates schemas from your Python code and React props when you run `generate_schemas` (or when the file watcher triggers, if enabled).
+## MCP Configuration
 
-## Where are agents created?
+### Automatic Setup (Recommended)
 
-Agents are created in your **current working directory**.
+```bash
+a4e mcp setup cursor
+```
 
-- If you want to add an agent to the `agent-store`, open that folder in Cursor first.
-- If you are testing, just create a temporary folder.
+This:
 
-## Integration
+1. Creates a backup of your existing config
+2. Adds A4E to your MCP servers
+3. Uses the correct Python path automatically
 
-- **Local Dev**: `dev_start` - Starts local server and ngrok tunnel.
-- **Deployment**: `deploy` (Mocked) - Will upload to S3 and register with the Hub.
+### Manual Setup
+
+<details>
+<summary>Cursor (~/.cursor/mcp.json)</summary>
+
+```json
+{
+  "mcpServers": {
+    "a4e": {
+      "command": "/path/to/python",
+      "args": ["-m", "a4e.server"],
+      "env": {
+        "A4E_WORKSPACE": "${workspaceFolder}"
+      }
+    }
+  }
+}
+```
+
+Find your Python path with: `which python` or `a4e mcp test`
+
+</details>
+
+<details>
+<summary>Claude Code (~/.claude.json)</summary>
+
+```json
+{
+  "mcpServers": {
+    "a4e": {
+      "command": "/path/to/python",
+      "args": ["-m", "a4e.server"]
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary>Antigravity (~/.gemini/antigravity/mcp_config.json)</summary>
+
+```json
+{
+  "mcpServers": {
+    "a4e": {
+      "command": "/path/to/python",
+      "args": ["-m", "a4e.server"]
+    }
+  }
+}
+```
+
+</details>
 
 ## Troubleshooting
 
-### "pyngrok not installed"
+### "a4e: command not found"
 
-If `dev_start` fails, it means the MCP server environment is missing dependencies.
+Ensure pip scripts are in your PATH:
 
-1. Run `check_environment` tool to diagnose.
-2. Ensure you ran `uv sync` in the `a4e-mcp-server` directory.
-3. Restart your IDE/MCP Client to reload the environment.
+```bash
+# Find where pip installs scripts
+python -m site --user-base
 
-### "ngrok command not found"
+# Add to PATH (add to ~/.bashrc or ~/.zshrc)
+export PATH="$HOME/.local/bin:$PATH"
 
-If you don't want to use `pyngrok`, install the ngrok CLI manually:
+# Or install with pipx for automatic PATH management
+pipx install a4e
+```
 
-- Mac: `brew install ngrok/ngrok/ngrok`
-- Windows: `choco install ngrok`
+### MCP not connecting in IDE
+
+```bash
+# 1. Test the MCP server
+a4e mcp test
+
+# 2. Check your config
+a4e mcp show cursor
+
+# 3. Verify Python path is correct
+which python
+
+# 4. Restart your IDE after config changes
+```
+
+### ngrok errors in dev server
+
+```bash
+# Check if ngrok is configured
+ngrok config check
+
+# Add your authtoken
+ngrok config add-authtoken YOUR_TOKEN
+
+# Or pass it directly
+a4e dev start --auth-token YOUR_TOKEN
+```
+
+### Port 5000 already in use
+
+```bash
+# Find what's using the port
+lsof -i :5000
+
+# Kill it
+kill -9 <PID>
+
+# Or use a different port
+a4e dev start --port 5001
+```
+
+### MCP config backup
+
+When running `a4e mcp setup`, a backup is automatically created at:
+
+- Cursor: `~/.cursor/mcp.json.backup`
+- Claude Code: `~/.claude.json.backup`
+- Antigravity: `~/.gemini/antigravity/mcp_config.json.backup`
+
+To restore:
+
+```bash
+cp ~/.cursor/mcp.json.backup ~/.cursor/mcp.json
+```
+
+## Documentation
+
+- [CLI Reference](CLI.md) - Full command documentation
+- [Getting Started](docs/GETTING_STARTED.md) - Step-by-step tutorial
+- [Examples](docs/EXAMPLES.md) - Sample agents
+- [View System](docs/VIEW_SYSTEM.md) - How views work
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+## Links
+
+- [PyPI](https://pypi.org/project/a4e/)
+- [GitHub](https://github.com/simetrik-inc-public/a4e-mcp-server)
+- [Issues](https://github.com/simetrik-inc-public/a4e-mcp-server/issues)

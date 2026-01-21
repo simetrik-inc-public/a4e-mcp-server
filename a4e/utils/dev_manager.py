@@ -3,11 +3,13 @@ import shutil
 import time
 import sys
 import re
+import platform
 from pathlib import Path
 from typing import Optional, Dict, Any
 from urllib.parse import urlencode
 
 HUB_URL = "https://dev-a4e.global.simetrik.com"
+IS_WINDOWS = platform.system() == "Windows"
 
 
 class DevManager:
@@ -37,23 +39,57 @@ class DevManager:
     def _cleanup_port(port: int):
         """Kill any process using the specified port and any ngrok process."""
         try:
-            # 1. Kill process on port (lsof on Mac/Linux)
-            # Find PID using port
-            cmd = f"lsof -t -i:{port}"
-            try:
-                pid = subprocess.check_output(cmd, shell=True).decode().strip()
-                if pid:
-                    print(f"Killing process {pid} on port {port}")
-                    subprocess.run(f"kill -9 {pid}", shell=True)
-            except subprocess.CalledProcessError:
-                pass  # No process found
+            if IS_WINDOWS:
+                # Windows: Use netstat and taskkill
+                # Find PID using port
+                try:
+                    result = subprocess.run(
+                        f'netstat -ano | findstr :{port}',
+                        shell=True,
+                        capture_output=True,
+                        text=True
+                    )
+                    if result.stdout:
+                        # Parse PID from netstat output (last column)
+                        for line in result.stdout.strip().split('\n'):
+                            parts = line.split()
+                            if len(parts) >= 5:
+                                pid = parts[-1]
+                                if pid.isdigit():
+                                    print(f"Killing process {pid} on port {port}")
+                                    subprocess.run(
+                                        f'taskkill /F /PID {pid}',
+                                        shell=True,
+                                        capture_output=True
+                                    )
+                except Exception:
+                    pass  # No process found or error parsing
 
-            # 2. Kill orphan ngrok processes
-            # This is a bit aggressive but ensures clean state as requested
-            try:
-                subprocess.run("pkill -f ngrok", shell=True)
-            except Exception:
-                pass
+                # Kill ngrok processes on Windows
+                try:
+                    subprocess.run(
+                        'taskkill /F /IM ngrok.exe',
+                        shell=True,
+                        capture_output=True
+                    )
+                except Exception:
+                    pass
+            else:
+                # Unix (macOS/Linux): Use lsof and kill
+                cmd = f"lsof -t -i:{port}"
+                try:
+                    pid = subprocess.check_output(cmd, shell=True).decode().strip()
+                    if pid:
+                        print(f"Killing process {pid} on port {port}")
+                        subprocess.run(f"kill -9 {pid}", shell=True)
+                except subprocess.CalledProcessError:
+                    pass  # No process found
+
+                # Kill orphan ngrok processes
+                try:
+                    subprocess.run("pkill -f ngrok", shell=True)
+                except Exception:
+                    pass
 
         except Exception as e:
             print(f"Warning during cleanup: {e}")
@@ -98,29 +134,50 @@ class DevManager:
             }
 
         print(f"Starting agent server on port {port}...")
-        server_process = subprocess.Popen(
-            [
-                sys.executable,
-                str(runner_script),
-                "--agent-path",
-                str(project_dir),
-                "--port",
-                str(port),
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
+
+        # On Windows, using PIPE without reading causes the process to hang
+        # when the buffer fills up. Use DEVNULL or files instead.
+        if IS_WINDOWS:
+            # Create detached process on Windows to avoid blocking
+            creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
+            server_process = subprocess.Popen(
+                [
+                    sys.executable,
+                    str(runner_script),
+                    "--agent-path",
+                    str(project_dir),
+                    "--port",
+                    str(port),
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=creation_flags,
+            )
+        else:
+            server_process = subprocess.Popen(
+                [
+                    sys.executable,
+                    str(runner_script),
+                    "--agent-path",
+                    str(project_dir),
+                    "--port",
+                    str(port),
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
 
         # Give it a moment to start
         time.sleep(2)
         if server_process.poll() is not None:
-            stdout, stderr = server_process.communicate()
-            error_details = ""
-            if stdout:
-                error_details += f"STDOUT:\n{stdout}\n"
-            if stderr:
-                error_details += f"STDERR:\n{stderr}\n"
+            error_details = "No output captured (Windows uses DEVNULL)" if IS_WINDOWS else ""
+            if not IS_WINDOWS:
+                stdout, stderr = server_process.communicate()
+                if stdout:
+                    error_details += f"STDOUT:\n{stdout}\n"
+                if stderr:
+                    error_details += f"STDERR:\n{stderr}\n"
 
             return {
                 "success": False,
@@ -141,11 +198,13 @@ class DevManager:
         server_process: subprocess.Popen,
     ) -> Dict[str, Any]:
         """Internal helper to start ngrok via library or CLI."""
+        import concurrent.futures
+
         public_url = None
         method = "unknown"
 
-        # Try pyngrok first
-        try:
+        def _connect_pyngrok(port: int, auth_token: Optional[str]) -> str:
+            """Helper to run pyngrok connection with timeout support."""
             from pyngrok import ngrok, conf  # type: ignore
 
             if auth_token:
@@ -155,22 +214,31 @@ class DevManager:
             try:
                 tunnels = ngrok.get_tunnels()
                 for t in tunnels:
-                    # Check if tunnel matches our port
-                    # t.config is a dict with 'addr', e.g., 'http://localhost:5000' or just '5000'
                     addr = str(t.config.get("addr", ""))
-                    # Match exact port at end of addr or as standalone value
                     if addr.endswith(f":{port}") or addr == str(port):
-                        print(
-                            f"Disconnecting existing tunnel for port {port}: {t.public_url}"
-                        )
+                        print(f"Disconnecting existing tunnel for port {port}: {t.public_url}")
                         ngrok.disconnect(t.public_url)
             except Exception as e:
                 print(f"Warning: Failed to enumerate/disconnect tunnels: {e}")
-                # We don't kill() here to be safe, just proceed and hope for the best
 
             tunnel = ngrok.connect(port)
-            public_url = tunnel.public_url
-            method = "pyngrok"
+            return tunnel.public_url
+
+        # Try pyngrok first with timeout
+        try:
+            from pyngrok import ngrok  # type: ignore - just to check if installed
+
+            # Use ThreadPoolExecutor to add timeout to pyngrok operations
+            timeout_seconds = 30 if IS_WINDOWS else 15
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(_connect_pyngrok, port, auth_token)
+                try:
+                    public_url = future.result(timeout=timeout_seconds)
+                    method = "pyngrok"
+                except concurrent.futures.TimeoutError:
+                    print(f"pyngrok timed out after {timeout_seconds}s, falling back to CLI")
+                    raise ImportError("pyngrok timeout")  # Fall through to CLI
+
         except ImportError:
             # Fallback to ngrok CLI
             ngrok_path = shutil.which("ngrok")

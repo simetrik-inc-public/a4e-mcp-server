@@ -333,7 +333,7 @@ def render_view(
 ### Development Mode
 
 ```bash
-python -m a4e.dev_runner --agent-path file-store/agent-store/my-agent --port 5001
+python -m a4e.dev_runner --agent-path my-agent --port 5001
 ```
 
 In dev mode, the `dev_runner.py` matches skills based on `intent_triggers` and renders the corresponding view.

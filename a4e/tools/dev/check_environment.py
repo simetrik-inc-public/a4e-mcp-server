@@ -61,14 +61,26 @@ def check_environment() -> dict:
             if conf.get_default().auth_token:
                 results["ngrok_auth"]["configured"] = True
                 results["ngrok_auth"]["source"] = "config_file"
-        except ImportError:
-            config_path = Path.home() / ".ngrok2" / "ngrok.yml"
-            config_path_new = (
-                Path.home() / "Library/Application Support/ngrok/ngrok.yml"
-            )
-            if config_path.exists() or config_path_new.exists():
-                results["ngrok_auth"]["configured"] = True
-                results["ngrok_auth"]["source"] = "config_file_detected"
+        except (ImportError, Exception):
+            # Check config files directly (fallback)
+            config_paths = [
+                Path.home() / ".ngrok2" / "ngrok.yml",  # Legacy path
+                Path.home() / "Library/Application Support/ngrok/ngrok.yml",  # macOS
+            ]
+            # Windows paths
+            localappdata = os.environ.get("LOCALAPPDATA")
+            if localappdata:
+                config_paths.append(Path(localappdata) / "ngrok" / "ngrok.yml")
+            appdata = os.environ.get("APPDATA")
+            if appdata:
+                config_paths.append(Path(appdata) / "ngrok" / "ngrok.yml")
+            
+            for config_path in config_paths:
+                if config_path.exists():
+                    results["ngrok_auth"]["configured"] = True
+                    results["ngrok_auth"]["source"] = "config_file_detected"
+                    results["ngrok_auth"]["path"] = str(config_path)
+                    break
 
     if not results["ngrok_auth"]["configured"]:
         results["recommendations"].append(

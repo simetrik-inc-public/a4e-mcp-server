@@ -26,6 +26,7 @@ def initialize_project(
         "General",
     ],
     template: Literal["basic", "with-tools", "with-views", "full"] = "basic",
+    project_path: Optional[str] = None,
 ) -> dict:
     """
     Initialize a new A4E agent project
@@ -36,6 +37,9 @@ def initialize_project(
         description: Short description of the agent
         category: Agent category for marketplace
         template: Project template (basic=files only, with-tools=example tool, with-views=example view, full=both)
+        project_path: Base directory where the agent folder will be created.
+                      The agent will be created at {project_path}/{name}/.
+                      If not provided, uses the current workspace directory.
 
     Returns:
         Project details with created files and next steps
@@ -47,14 +51,31 @@ def initialize_project(
             "error": "Agent name must be alphanumeric with hyphens/underscores only",
         }
 
-    # Use helper to determine path
-    project_dir = get_project_dir(name)
+    # Determine project directory
+    if project_path:
+        # Use explicit path provided by the LLM/user
+        base_dir = Path(project_path).resolve()
+        if not base_dir.exists():
+            return {
+                "success": False,
+                "error": f"Project path does not exist: {project_path}",
+            }
+        if not base_dir.is_dir():
+            return {
+                "success": False,
+                "error": f"Project path is not a directory: {project_path}",
+            }
+        # Create agent directly in the provided path
+        project_dir = base_dir / name
+    else:
+        # Use automatic detection (env var, cwd, etc.)
+        project_dir = get_project_dir(name)
 
     if project_dir.exists():
         return {"success": False, "error": f"Directory '{project_dir}' already exists"}
 
     try:
-        # Ensure file-store/agent-store structure exists
+        # Ensure parent directory exists
         agent_store_root = project_dir.parent
         agent_store_root.mkdir(parents=True, exist_ok=True)
 
@@ -85,6 +106,17 @@ def initialize_project(
             category=category,
         )
         (project_dir / "metadata.json").write_text(metadata)
+
+        # Generate dependencies.json (for external view dependencies)
+        import json
+        dependencies_data = {
+            "version": "1.0.0",
+            "description": f"External dependencies for {safe_display_name} views",
+            "dependencies": {}
+        }
+        (project_dir / "dependencies.json").write_text(
+            json.dumps(dependencies_data, indent=2) + "\n"
+        )
 
         # Generate prompts/agent.md
         prompt_template = jinja_env.get_template("prompt.md.j2")
@@ -124,12 +156,27 @@ def initialize_project(
 
         # Create welcome view (MANDATORY)
         from ..views.helpers import create_view
-        create_view(
+        welcome_result = create_view(
             view_id="welcome",
             description="Welcome view for the agent",
             props={"title": {"type": "string", "description": "Welcome title"}},
             project_dir=project_dir,
         )
+        
+        # Verify welcome view was created successfully
+        if not welcome_result.get("success"):
+            return {
+                "success": False,
+                "error": f"Failed to create welcome view: {welcome_result.get('error')}",
+            }
+        
+        # Double-check welcome view files exist
+        welcome_view_tsx = project_dir / "views" / "welcome" / "view.tsx"
+        if not welcome_view_tsx.exists():
+            return {
+                "success": False,
+                "error": "Welcome view was not created properly. Missing views/welcome/view.tsx",
+            }
 
         # Create example content based on template
         if template in ["with-tools", "full"]:

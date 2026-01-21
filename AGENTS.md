@@ -17,18 +17,18 @@ A4E MCP Server is a Model Context Protocol (MCP) server toolkit for building, ma
 
 The A4E CLI provides a full command-line interface for agent management:
 
-| Command | Description |
-|---------|-------------|
-| `a4e init` | Initialize a new agent project (interactive wizard) |
-| `a4e add tool` | Add a tool to the agent |
-| `a4e add view` | Add a view to the agent |
-| `a4e add skill` | Add a skill to the agent |
-| `a4e list [tools\|views\|skills\|all]` | List agent components |
-| `a4e remove [tool\|view\|skill]` | Remove a component |
-| `a4e validate` | Validate agent project |
-| `a4e deploy` | Deploy to production |
-| `a4e info` | Display agent information |
-| `a4e dev start` | Start development server |
+| Command                                | Description                                         |
+| -------------------------------------- | --------------------------------------------------- |
+| `a4e init`                             | Initialize a new agent project (interactive wizard) |
+| `a4e add tool`                         | Add a tool to the agent                             |
+| `a4e add view`                         | Add a view to the agent                             |
+| `a4e add skill`                        | Add a skill to the agent                            |
+| `a4e list [tools\|views\|skills\|all]` | List agent components                               |
+| `a4e remove [tool\|view\|skill]`       | Remove a component                                  |
+| `a4e validate`                         | Validate agent project                              |
+| `a4e deploy`                           | Deploy to production                                |
+| `a4e info`                             | Display agent information                           |
+| `a4e dev start`                        | Start development server                            |
 
 See [CLI.md](CLI.md) for full command reference.
 
@@ -61,7 +61,7 @@ def my_tool(params: Dict[str, Any]) -> Dict[str, Any]:
     """
     param1 = params.get("param1")
     param2 = params.get("param2")
-    
+
     return {"status": "success", "result": ...}
 ```
 
@@ -204,7 +204,7 @@ section_name/
 
 ## Code Style
 
-- Python 3.11+ required
+- Python 3.10+ required
 - Use type hints for all function parameters and return types
 - Use `Optional[T]` for optional parameters, not `T | None`
 - Snake_case for functions and variables
@@ -303,7 +303,7 @@ The `validate` tool checks agent integrity before deployment:
 
 - All user inputs are sanitized via `sanitize_input()` before template rendering
 - Template injection is prevented by stripping non-alphanumeric characters
-- Agents cannot be created in HOME directory without proper agent-store structure
+- Agents cannot be created directly in HOME directory (must specify project_path)
 
 ## Dependencies
 
