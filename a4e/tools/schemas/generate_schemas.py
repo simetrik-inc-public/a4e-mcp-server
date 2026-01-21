@@ -52,6 +52,7 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
     results = {
         "tools": {"count": 0, "status": "skipped", "errors": []},
         "views": {"count": 0, "status": "skipped", "errors": []},
+        "dependencies": {"count": 0, "status": "skipped", "consolidated": []},
         "warnings": [],
     }
 
@@ -281,6 +282,132 @@ def generate_schemas(force: bool = False, agent_name: Optional[str] = None) -> d
             has_errors = True
 
         results["views"]["status"] = "error" if has_errors else "success"
+
+    # Consolidate dependencies from all views
+    if views_dir.exists():
+        try:
+            all_external_deps = set()
+
+            # Built-in/local packages to ignore
+            builtin_packages = {
+                "react", "react-dom", "next", "next/link", "next/image",
+                "@/lib/sdk", "@/lib", "@/components", "@/utils", "@/hooks",
+                "clsx", "tailwind-merge", "class-variance-authority",
+            }
+
+            # Known external packages that should be tracked
+            external_packages = {
+                "recharts", "date-fns", "@tanstack/react-table", "lodash",
+                "axios", "zustand", "react-icons", "framer-motion",
+                "chart.js", "react-chartjs-2", "@headlessui/react",
+                "react-hook-form", "@hookform/resolvers", "zod",
+                "react-query", "@tanstack/react-query", "swr",
+                "dayjs", "moment", "luxon",
+            }
+
+            for view_dir in views_dir.iterdir():
+                if not view_dir.is_dir():
+                    continue
+
+                view_file = view_dir / "view.tsx"
+                if not view_file.exists():
+                    continue
+
+                try:
+                    content = view_file.read_text()
+
+                    # Extract imports: import ... from "package"
+                    import_matches = re.findall(
+                        r'import\s+.*?\s+from\s+["\']([^"\']+)["\']',
+                        content
+                    )
+
+                    for pkg in import_matches:
+                        # Skip relative imports
+                        if pkg.startswith(".") or pkg.startswith("@/"):
+                            continue
+                        # Skip built-in packages
+                        if pkg in builtin_packages:
+                            continue
+                        # Get the base package name (e.g., "recharts" from "recharts/lib/something")
+                        base_pkg = pkg.split("/")[0]
+                        if base_pkg.startswith("@"):
+                            # Scoped package like @tanstack/react-table
+                            base_pkg = "/".join(pkg.split("/")[:2])
+
+                        # Only add if it's a known external or doesn't look like a builtin
+                        if base_pkg in external_packages or (
+                            base_pkg not in builtin_packages and
+                            not base_pkg.startswith("@/")
+                        ):
+                            all_external_deps.add(base_pkg)
+
+                except Exception as e:
+                    _log(f"Error extracting imports from {view_file}: {e}")
+
+            # Update dependencies.json
+            if all_external_deps:
+                deps_file = project_dir / "dependencies.json"
+
+                # Default versions for common packages
+                default_versions = {
+                    "recharts": "2.10.0",
+                    "date-fns": "3.0.0",
+                    "@tanstack/react-table": "8.11.0",
+                    "lodash": "4.17.21",
+                    "axios": "1.6.0",
+                    "zustand": "4.4.0",
+                    "react-icons": "5.0.0",
+                    "framer-motion": "10.16.0",
+                    "chart.js": "4.4.0",
+                    "react-chartjs-2": "5.2.0",
+                    "@headlessui/react": "1.7.0",
+                    "react-hook-form": "7.49.0",
+                    "@hookform/resolvers": "3.3.0",
+                    "zod": "3.22.0",
+                    "@tanstack/react-query": "5.17.0",
+                    "swr": "2.2.0",
+                    "dayjs": "1.11.0",
+                    "moment": "2.30.0",
+                    "luxon": "3.4.0",
+                }
+
+                # Load existing or create new
+                if deps_file.exists():
+                    deps_data = json.loads(deps_file.read_text())
+                else:
+                    deps_data = {
+                        "version": "1.0.0",
+                        "description": "External dependencies for agent views",
+                        "dependencies": {}
+                    }
+
+                existing_deps = deps_data.get("dependencies", {})
+                added = []
+
+                for pkg in sorted(all_external_deps):
+                    if pkg not in existing_deps:
+                        version = default_versions.get(pkg, "latest")
+                        existing_deps[pkg] = version
+                        added.append(pkg)
+
+                deps_data["dependencies"] = dict(sorted(existing_deps.items()))
+                deps_file.write_text(json.dumps(deps_data, indent=2) + "\n")
+
+                results["dependencies"]["count"] = len(existing_deps)
+                results["dependencies"]["consolidated"] = added
+                results["dependencies"]["status"] = "success"
+
+                if added:
+                    _log(f"Consolidated {len(added)} new dependencies: {', '.join(added)}")
+            else:
+                results["dependencies"]["status"] = "no_external_deps"
+
+        except Exception as e:
+            error_msg = f"Error consolidating dependencies: {e}"
+            _log(error_msg)
+            results["dependencies"]["status"] = "error"
+            results["dependencies"]["error"] = error_msg
 
     return results
 

@@ -92,3 +92,69 @@ def create_view(
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+
+def update_dependencies(
+    dependencies: list, project_dir: Path, versions: dict = None
+) -> dict:
+    """
+    Update dependencies.json with new packages (without duplicates).
+
+    Args:
+        dependencies: List of npm package names (e.g., ["recharts", "date-fns"])
+        project_dir: Path to the agent project directory
+        versions: Optional dict of package versions (e.g., {"recharts": "2.10.0"})
+
+    Returns:
+        Result dictionary with success status and added packages
+    """
+    deps_file = project_dir / "dependencies.json"
+
+    # Default versions for common packages
+    default_versions = {
+        "recharts": "2.10.0",
+        "date-fns": "3.0.0",
+        "@tanstack/react-table": "8.11.0",
+        "lodash": "4.17.21",
+        "axios": "1.6.0",
+        "zustand": "4.4.0",
+        "react-icons": "5.0.0",
+        "framer-motion": "10.16.0",
+        "chart.js": "4.4.0",
+        "react-chartjs-2": "5.2.0",
+    }
+
+    try:
+        # Load existing dependencies or create new structure
+        if deps_file.exists():
+            deps_data = json.loads(deps_file.read_text())
+        else:
+            deps_data = {
+                "version": "1.0.0",
+                "description": "External dependencies for agent views",
+                "dependencies": {}
+            }
+
+        existing_deps = deps_data.get("dependencies", {})
+        added = []
+
+        for pkg in dependencies:
+            if pkg not in existing_deps:
+                # Use provided version, default version, or "latest"
+                version = (versions or {}).get(pkg) or default_versions.get(pkg) or "latest"
+                existing_deps[pkg] = version
+                added.append(pkg)
+
+        deps_data["dependencies"] = existing_deps
+
+        # Write updated file
+        deps_file.write_text(json.dumps(deps_data, indent=2) + "\n")
+
+        return {
+            "success": True,
+            "added": added,
+            "total": len(existing_deps),
+            "message": f"Added {len(added)} new dependencies" if added else "No new dependencies added",
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+

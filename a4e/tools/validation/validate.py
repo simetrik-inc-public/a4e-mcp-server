@@ -124,6 +124,11 @@ def validate(strict: bool = True, agent_name: Optional[str] = None) -> dict:
                     "Views exist but views/schemas.json is missing. Run generate_schemas."
                 )
 
+        # 3.5. Validate dependencies.json
+        deps_errors, deps_warnings = _validate_dependencies(project_dir, views_dir)
+        errors.extend(deps_errors)
+        warnings.extend(deps_warnings)
+
         # 4. Validate skills integrity
         skills_dir = project_dir / "skills"
         if skills_dir.exists():
@@ -385,5 +390,125 @@ def _validate_skills(skills_dir, tools_dir, views_dir) -> tuple:
     for trigger, skills in trigger_to_skills.items():
         if len(skills) > 1:
             warnings.append(f"Duplicate trigger '{trigger}' in skills: {', '.join(skills)}")
-    
+
+    return errors, warnings
+
+
+def _validate_dependencies(project_dir, views_dir) -> tuple:
+    """
+    Validate dependencies.json for external view dependencies.
+
+    Checks:
+    - File exists if views use external packages
+    - Valid JSON format
+    - Required structure (version, dependencies)
+    - No duplicate entries (by design, dict keys are unique)
+    - Warns about missing dependencies detected in views
+
+    Returns:
+        Tuple of (errors, warnings)
+    """
+    errors = []
+    warnings = []
+
+    deps_file = project_dir / "dependencies.json"
+
+    # Built-in packages to ignore when checking views
+    builtin_packages = {
+        "react", "react-dom", "next", "next/link", "next/image",
+        "@/lib/sdk", "@/lib", "@/components", "@/utils", "@/hooks",
+        "clsx", "tailwind-merge", "class-variance-authority",
+    }
+
+    # Extract external imports from views
+    external_imports = set()
+    if views_dir.exists():
+        for view_dir in views_dir.iterdir():
+            if not view_dir.is_dir():
+                continue
+            view_file = view_dir / "view.tsx"
+            if not view_file.exists():
+                continue
+
+            try:
+                content = view_file.read_text()
+                # Extract imports
+                import_matches = re.findall(
+                    r'import\s+.*?\s+from\s+["\']([^"\']+)["\']',
+                    content
+                )
+                for pkg in import_matches:
+                    if pkg.startswith(".") or pkg.startswith("@/"):
+                        continue
+                    if pkg in builtin_packages:
+                        continue
+
+                    # Get base package name
+                    base_pkg = pkg.split("/")[0]
+                    if base_pkg.startswith("@"):
+                        base_pkg = "/".join(pkg.split("/")[:2])
+
+                    if base_pkg not in builtin_packages:
+                        external_imports.add(base_pkg)
+            except Exception:
+                pass
+
+    # If there are external imports, dependencies.json should exist
+    if external_imports and not deps_file.exists():
+        warnings.append(
+            f"Views use external packages ({', '.join(sorted(external_imports))}) "
+            "but dependencies.json is missing. Run generate_schemas to create it."
+        )
+        return errors, warnings
+
+    # Validate dependencies.json if it exists
+    if deps_file.exists():
+        try:
+            deps_data = json.loads(deps_file.read_text())
+
+            # Check required structure
+            if not isinstance(deps_data, dict):
+                errors.append("dependencies.json must be a JSON object")
+                return errors, warnings
+
+            if "dependencies" not in deps_data:
+                errors.append("dependencies.json missing 'dependencies' key")
+                return errors, warnings
+
+            if not isinstance(deps_data["dependencies"], dict):
+                errors.append("dependencies.json 'dependencies' must be an object")
+                return errors, warnings
+
+            declared_deps = set(deps_data["dependencies"].keys())
+
+            # Check for missing dependencies
+            missing = external_imports - declared_deps
+            if missing:
+                warnings.append(
+                    f"Views import packages not declared in dependencies.json: "
+                    f"{', '.join(sorted(missing))}. Run generate_schemas to update."
+                )
+
+            # Check for unused dependencies (warning only)
+            unused = declared_deps - external_imports
+            if unused and external_imports:  # Only warn if we detected some imports
+                # This is just informational, not an error
+                pass  # Don't warn - dependencies might be used dynamically
+
+            # Validate version format (warning for "latest")
+            latest_deps = [
+                pkg for pkg, version in deps_data["dependencies"].items()
+                if version == "latest"
+            ]
+            if latest_deps:
+                warnings.append(
+                    f"Dependencies with 'latest' version (consider pinning): "
+                    f"{', '.join(latest_deps)}"
+                )
+
+        except json.JSONDecodeError as e:
+            errors.append(f"Invalid JSON in dependencies.json: {e}")
+        except Exception as e:
+            errors.append(f"Error reading dependencies.json: {e}")
+
     return errors, warnings

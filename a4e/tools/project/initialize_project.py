@@ -107,6 +107,17 @@ def initialize_project(
         )
         (project_dir / "metadata.json").write_text(metadata)
 
+        # Generate dependencies.json (for external view dependencies)
+        import json
+        dependencies_data = {
+            "version": "1.0.0",
+            "description": f"External dependencies for {safe_display_name} views",
+            "dependencies": {}
+        }
+        (project_dir / "dependencies.json").write_text(
+            json.dumps(dependencies_data, indent=2) + "\n"
+        )
+
         # Generate prompts/agent.md
         prompt_template = jinja_env.get_template("prompt.md.j2")
         prompt = prompt_template.render(
