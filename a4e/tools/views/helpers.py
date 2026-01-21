@@ -217,18 +217,7 @@ def update_dependencies(
     deps_file = project_dir / "dependencies.json"
 
     # Default versions for common packages
-    default_versions = {
-        "recharts": "2.10.0",
-        "date-fns": "3.0.0",
-        "@tanstack/react-table": "8.11.0",
-        "lodash": "4.17.21",
-        "axios": "1.6.0",
-        "zustand": "4.4.0",
-        "react-icons": "5.0.0",
-        "framer-motion": "10.16.0",
-        "chart.js": "4.4.0",
-        "react-chartjs-2": "5.2.0",
-    }
+    from ...constants import DEFAULT_PACKAGE_VERSIONS
 
     try:
         # Load existing dependencies or create new structure
@@ -247,7 +236,7 @@ def update_dependencies(
         for pkg in dependencies:
             if pkg not in existing_deps:
                 # Use provided version, default version, or "latest"
-                version = (versions or {}).get(pkg) or default_versions.get(pkg) or "latest"
+                version = (versions or {}).get(pkg) or DEFAULT_PACKAGE_VERSIONS.get(pkg) or "latest"
                 existing_deps[pkg] = version
                 added.append(pkg)
 

@@ -3,13 +3,19 @@ from typing import Optional
 import typer
 from .cli_commands import dev, init, add, list, validate, deploy, info, remove, update, mcp
 
-# Version from pyproject.toml
-__version__ = "0.1.8"
+
+def _get_version() -> str:
+    """Get package version from metadata or fallback."""
+    try:
+        from importlib.metadata import version
+        return version("a4e")
+    except Exception:
+        return "0.1.8"  # Fallback for development
 
 
 def version_callback(value: bool):
     if value:
-        typer.echo(f"a4e {__version__}")
+        typer.echo(f"a4e {_get_version()}")
         raise typer.Exit()
 
 

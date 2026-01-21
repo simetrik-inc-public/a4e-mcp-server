@@ -408,17 +408,12 @@ def _validate_dependencies(project_dir, views_dir) -> tuple:
     Returns:
         Tuple of (errors, warnings)
     """
+    from ...constants import CORE_VIEW_DEPENDENCIES
+
     errors = []
     warnings = []
 
     deps_file = project_dir / "dependencies.json"
-
-    # Built-in packages to ignore when checking views
-    builtin_packages = {
-        "react", "react-dom", "next", "next/link", "next/image",
-        "@/lib/sdk", "@/lib", "@/components", "@/utils", "@/hooks",
-        "clsx", "tailwind-merge", "class-variance-authority",
-    }
 
     # Extract external imports from views
     external_imports = set()
@@ -438,18 +433,21 @@ def _validate_dependencies(project_dir, views_dir) -> tuple:
                     content
                 )
                 for pkg in import_matches:
+                    # Skip relative imports and internal A4E imports
                     if pkg.startswith(".") or pkg.startswith("@/"):
                         continue
-                    if pkg in builtin_packages:
-                        continue
 
-                    # Get base package name
+                    # Get base package name (e.g., "recharts" from "recharts/lib/chart")
                     base_pkg = pkg.split("/")[0]
                     if base_pkg.startswith("@"):
+                        # Scoped package like @tanstack/react-table
                         base_pkg = "/".join(pkg.split("/")[:2])
 
-                    if base_pkg not in builtin_packages:
-                        external_imports.add(base_pkg)
+                    # Skip core dependencies (already provided by A4E Hub)
+                    if base_pkg in CORE_VIEW_DEPENDENCIES:
+                        continue
+
+                    external_imports.add(base_pkg)
             except Exception:
                 pass
 

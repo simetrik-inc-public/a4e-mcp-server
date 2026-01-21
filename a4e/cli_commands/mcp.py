@@ -30,11 +30,6 @@ app = typer.Typer(
 # ============================================================================
 
 
-def _get_platform() -> str:
-    """Get the current platform: darwin, win32, or linux."""
-    return sys.platform
-
-
 def _get_ide_configs() -> dict:
     """
     Get IDE configuration paths and formats.
@@ -44,14 +39,7 @@ def _get_ide_configs() -> dict:
         - servers_key: Key name for MCP servers in config
         - name: Display name for the IDE
     """
-    platform = _get_platform()
     home = Path.home()
-
-    # Antigravity config path varies by OS
-    if platform == "win32":
-        antigravity_path = home / ".gemini" / "antigravity" / "mcp_config.json"
-    else:  # macOS and Linux
-        antigravity_path = home / ".gemini" / "antigravity" / "mcp_config.json"
 
     return {
         "cursor": {
@@ -65,7 +53,8 @@ def _get_ide_configs() -> dict:
             "name": "Claude Code",
         },
         "antigravity": {
-            "path": antigravity_path,
+            # Same path on all platforms
+            "path": home / ".gemini" / "antigravity" / "mcp_config.json",
             "servers_key": "mcpServers",
             "name": "Antigravity",
         },
