@@ -185,3 +185,58 @@ If you don't want to use `pyngrok`, install the ngrok CLI manually:
 
 - Mac: `brew install ngrok/ngrok/ngrok`
 - Windows: `choco install ngrok`
+
+## Agent Skills
+
+This repository includes an [Agent Skills](https://agentskills.io) compatible skill that teaches AI assistants how to build A4E agents using natural language.
+
+### What's Included
+
+The **A4E Agent Builder** skill provides comprehensive knowledge about:
+
+- Agent architecture and directory structure
+- MCP server tools and their usage
+- Database integration patterns (SQLite, Supabase, PostgreSQL, MySQL, MongoDB)
+- Mobile-optimized view development
+- UI/UX design system and guidelines
+- Deployment workflows and best practices
+
+### Installation
+
+**Location:** `skills/a4e-agent-builder/`
+
+The skill works across multiple AI development tools including:
+- Claude Code
+- Cursor
+- Claude Desktop
+- VS Code with Continue
+- Windsurf
+- Cline
+- Aider
+- Any Agent Skills compatible tool
+
+**Quick Install for Claude Code:**
+```bash
+# Copy to personal skills directory
+cp -r skills/a4e-agent-builder ~/.claude/skills/
+
+# Or create a symlink for auto-updates
+ln -s "$(pwd)/skills/a4e-agent-builder" ~/.claude/skills/
+```
+
+**For other platforms and detailed instructions:** See [SKILL-INSTALLATION.md](skills/a4e-agent-builder/SKILL-INSTALLATION.md)
+
+### Usage
+
+Once installed, the skill is automatically available:
+
+- **Automatic activation**: Ask questions about building A4E agents
+- **Direct invocation**: Use `/a4e-agent-builder` in supported tools
+- **Reference access**: The skill provides access to detailed guides on demand
+
+### Benefits
+
+- **Portable knowledge**: Works across 20+ AI development tools
+- **Always up-to-date**: Git-based installation makes updates easy
+- **Comprehensive**: Covers all aspects of A4E agent development
+- **Standards-compliant**: Follows the open [Agent Skills](https://agentskills.io) format
