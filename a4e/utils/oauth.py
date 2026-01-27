@@ -80,9 +80,7 @@ class OAuthConfig:
     def from_env(cls, **overrides) -> OAuthConfig:
         """Create config from environment variables."""
         return cls(
-            client_id=overrides.get(
-                "client_id", os.getenv("A4E_OAUTH_CLIENT_ID", "")
-            ),
+            client_id=overrides.get("client_id", os.getenv("A4E_OAUTH_CLIENT_ID", "")),
             client_secret=overrides.get(
                 "client_secret", os.getenv("A4E_OAUTH_CLIENT_SECRET")
             ),
@@ -261,7 +259,7 @@ class CallbackHandler(http.server.BaseHTTPRequestHandler):
 class CallbackServer:
     """Local HTTP server to receive OAuth callbacks."""
 
-    def __init__(self, port: int = 8085):
+    def __init__(self, port: int = 6790):
         self.port = port
         self.result: dict = {"received": False}
         self.server: socketserver.TCPServer | None = None
@@ -278,8 +276,7 @@ class CallbackServer:
         try:
             self._create_server(self.port)
         except OSError:
-            self.port = self._find_available_port()
-            self._create_server(self.port)
+            raise OSError(f"Failed to create server on port {self.port}")
 
         self._thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self._thread.start()
@@ -377,8 +374,10 @@ class A4EOAuthClient:
                 client_secret=client_secret,
                 redirect_uri=redirect_uri,
                 scopes=scopes or ["read", "profile"],
-                hub_frontend_url=hub_frontend_url or os.getenv("A4E_HUB_FRONTEND_URL", "http://localhost:3000"),
-                hub_api_url=hub_api_url or os.getenv("A4E_HUB_API_URL", "http://localhost:8000"),
+                hub_frontend_url=hub_frontend_url
+                or os.getenv("A4E_HUB_FRONTEND_URL", "http://localhost:3000"),
+                hub_api_url=hub_api_url
+                or os.getenv("A4E_HUB_API_URL", "http://localhost:8000"),
                 token_storage_key=token_storage_key,
             )
 
@@ -427,7 +426,9 @@ class A4EOAuthClient:
             "code_challenge": code_challenge,
             "code_challenge_method": "S256",
         }
-        auth_url = f"{self.config.hub_frontend_url}/oauth/authorize?{urlencode(auth_params)}"
+        auth_url = (
+            f"{self.config.hub_frontend_url}/oauth/authorize?{urlencode(auth_params)}"
+        )
 
         if on_url_ready:
             on_url_ready(auth_url)
@@ -440,11 +441,14 @@ class A4EOAuthClient:
 
             if result.get("error"):
                 raise OAuthError(
-                    result["error"], result.get("error_description", "Authentication failed")
+                    result["error"],
+                    result.get("error_description", "Authentication failed"),
                 )
 
             if result.get("state") != state:
-                raise OAuthError("invalid_state", "State parameter mismatch - possible CSRF attack")
+                raise OAuthError(
+                    "invalid_state", "State parameter mismatch - possible CSRF attack"
+                )
 
             tokens = self._exchange_code(
                 code=result["code"],
@@ -461,9 +465,7 @@ class A4EOAuthClient:
         finally:
             callback_server.stop()
 
-    def _exchange_code(
-        self, code: str, redirect_uri: str, code_verifier: str
-    ) -> dict:
+    def _exchange_code(self, code: str, redirect_uri: str, code_verifier: str) -> dict:
         """Exchange authorization code for tokens."""
         data = {
             "grant_type": "authorization_code",
