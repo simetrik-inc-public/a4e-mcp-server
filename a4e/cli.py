@@ -1,7 +1,7 @@
 # Import dependencies
 from typing import Optional
 import typer
-from .cli_commands import dev, init, add, list, validate, deploy, info, remove, update, mcp
+from .cli_commands import dev, init, add, list, validate, deploy, info, remove, update, mcp, auth
 
 
 def _get_version() -> str:
@@ -48,6 +48,7 @@ app.add_typer(validate.app, name="validate", help="Validate agent project")
 app.add_typer(deploy.app, name="deploy", help="Deploy agent to production")
 app.add_typer(info.app, name="info", help="Display agent information")
 app.add_typer(mcp.app, name="mcp", help="Configure MCP server for IDEs")
+app.add_typer(auth.app, name="auth", help="Authenticate with A4E Hub")
 
 if __name__ == "__main__":
     app()
